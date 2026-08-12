@@ -1,34 +1,94 @@
 // composables/db.ts
 import { Dexie, type EntityTable } from 'dexie'
-import type { Column } from '@/types'
+import type { Board, Column } from '@/types'
+
+const DEFAULT_BOARD_NAME = 'Default'
 
 // Define the database class
 class KanbanDatabase extends Dexie {
+  boards!: EntityTable<Board, 'id'> // Primary key is a string (id)
   columns!: EntityTable<Column, 'id'> // Primary key is a string (id)
 
   constructor() {
     super('KanbanDB')
     this.version(1).stores({
-      columns: 'id, title', // Primary key: id, with an index on title
+      columns: 'id, title', // Legacy schema: columns without boardId
     })
+    this.version(2)
+      .stores({
+        boards: 'id, name, order',
+        columns: 'id, boardId, title', // Primary key: id, indexed by boardId and title
+      })
+      .upgrade(async (tx) => {
+        // Migrate legacy single-board data: assign it to a freshly created default board
+        const legacy = (await tx.table('columns').toArray()) as Array<
+          Partial<Column> & { id: string }
+        >
+        const orphans = legacy.filter((c) => !c.boardId)
+        if (orphans.length > 0) {
+          const board: Board = { id: crypto.randomUUID(), name: DEFAULT_BOARD_NAME, order: 0 }
+          await tx.table('boards').add(board)
+          for (const c of orphans) {
+            await tx.table('columns').put({ ...c, boardId: board.id })
+          }
+        }
+      })
   }
 }
 
 export const db = new KanbanDatabase()
 
+// —— Boards ——
+
+export async function getBoards(): Promise<Board[]> {
+  try {
+    const boards = await db.boards.toArray()
+    return boards.sort((a, b) => a.order - b.order)
+  } catch (error) {
+    console.error('Failed to load boards:', error)
+    return []
+  }
+}
+
+export async function createBoard(name: string): Promise<Board> {
+  const boards = await db.boards.toArray()
+  const board: Board = {
+    id: crypto.randomUUID(),
+    name,
+    order: boards.length,
+  }
+  await db.boards.add(board)
+  return board
+}
+
+export async function renameBoard(id: string, name: string): Promise<void> {
+  await db.boards.update(id, { name })
+}
+
+export async function deleteBoard(id: string): Promise<void> {
+  await db.transaction('rw', db.boards, db.columns, async () => {
+    await db.boards.delete(id)
+    await db.columns.where('boardId').equals(id).delete()
+  })
+}
+
+// —— Columns ——
+
 // Incremental save: write changed records by primary key and remove columns no longer on the board
-export async function saveColumns(data: Column[]) {
+export async function saveColumns(boardId: string, data: Column[]): Promise<void> {
   try {
     // Persist the current array order so it survives a page refresh
     const plainData = data.map((c, index) => ({
       ...(JSON.parse(JSON.stringify(c)) as Column),
+      boardId,
       order: index,
     }))
     await db.transaction('rw', db.columns, async () => {
       await db.columns.bulkPut(plainData)
       await db.columns
-        .where('id')
-        .noneOf(plainData.map((c) => c.id))
+        .where('boardId')
+        .equals(boardId)
+        .and((c) => !plainData.some((p) => p.id === c.id))
         .delete()
     })
   } catch (error) {
@@ -36,13 +96,16 @@ export async function saveColumns(data: Column[]) {
   }
 }
 
-export async function getColumns(): Promise<Column[]> {
+export async function getColumns(boardId: string): Promise<Column[]> {
   try {
     // Old data may be missing mode / tasks / title / order fields; fill in defaults on read
     // so state like column mode and order stay consistent across sessions
-    const raw = (await db.columns.toArray()) as Array<Partial<Column> & { id: string }>
+    const raw = (await db.columns.where('boardId').equals(boardId).toArray()) as Array<
+      Partial<Column> & { id: string }
+    >
     const normalized: Column[] = raw.map((c, index) => ({
       id: c.id,
+      boardId,
       title: typeof c.title === 'string' ? c.title : '',
       tasks: Array.isArray(c.tasks) ? c.tasks : [],
       mode: c.mode === 'vertical' ? 'vertical' : 'horizontal',

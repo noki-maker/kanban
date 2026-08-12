@@ -102,7 +102,7 @@ function removeTask(taskId: string) {
       <div
         v-if="column.mode === 'horizontal'"
         class="cursor-pointer text-#fda92d text-3 hover:opacity-70"
-        title="Delete column"
+        title="Delete Column"
         @click="removeColumn"
         i-carbon:trash-can
       />
@@ -115,7 +115,7 @@ function removeTask(taskId: string) {
             <div class="leading-4 whitespace-pre-line">{{ task.content }}</div>
             <div
               class="cursor-pointer text-#fda92d text-3 hover:opacity-70"
-              title="Delete task"
+              title="Delete Task"
               @click="removeTask(task.id)"
               i-carbon:trash-can
             />

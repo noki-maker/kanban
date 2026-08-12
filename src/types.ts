@@ -4,8 +4,16 @@ export interface Task {
   content: string
 }
 
+/** A kanban board: owns a set of columns. */
+export interface Board {
+  id: string
+  name: string
+  order: number
+}
+
 export interface Column {
   id: string
+  boardId: string
   title: string
   tasks: Task[]
   mode: 'horizontal' | 'vertical'
