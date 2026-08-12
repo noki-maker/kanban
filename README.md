@@ -51,7 +51,7 @@ pnpm type-check
 - Double-click a column title to rename it.
 - Click the chevron icon to collapse/expand a column (vertical mode).
 - Click **Add Task** to create a task in a column.
-- Double-click the trash icon to delete a task or column.
+- Click the trash icon to delete a task or column (with a confirmation dialog).
 - Click **Add Column** to append a new column.
 
 All changes are saved to IndexedDB automatically.

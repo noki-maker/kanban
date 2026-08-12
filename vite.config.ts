@@ -4,6 +4,12 @@ import { defineConfig, lazyPlugins } from 'vite-plus'
 import vue from '@vitejs/plugin-vue'
 import UnoCSS from 'unocss/vite'
 
+// CodeBuddy (VSCode core) terminal injects VSCODE_CWD, which makes unocss
+// preset-icons' getEnvFlags() misdetect a VSCode environment and skip the local
+// node-loader (falling back to a CDN loader that fails offline). Clear this
+// variable before build/dev so icons load from local node_modules.
+delete process.env.VSCODE_CWD
+
 // https://vite.dev/config/
 export default defineConfig({
   staged: {
