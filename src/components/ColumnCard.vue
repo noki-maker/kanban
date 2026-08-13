@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { nextTick, ref } from 'vue'
 import draggable from 'vuedraggable'
-import type { Column } from '@/types'
+import type { Column, Task } from '@/types'
+import { renderMarkdown } from '@/composables/markdown'
 
 const props = defineProps<{ column: Column }>()
-const emit = defineEmits<{ remove: [column: Column] }>()
+const emit = defineEmits<{ remove: [column: Column]; openTask: [task: Task] }>()
 
 // —— Title editing (per-column state, so shared refs don't scramble focus) ——
 const isEditingTitle = ref(false)
@@ -55,11 +56,20 @@ function removeColumn() {
   }
 }
 
-function removeTask(taskId: string) {
-  const index = props.column.tasks.findIndex((t) => t.id === taskId)
-  if (index !== -1 && window.confirm('Delete this task?')) {
-    props.column.tasks.splice(index, 1)
+// —— Open task detail (single click with confirmation) ——
+const dragStart = ref<{ x: number; y: number } | null>(null)
+
+function onTaskPointerDown(event: PointerEvent) {
+  dragStart.value = { x: event.clientX, y: event.clientY }
+}
+
+function onTaskClick(event: MouseEvent, task: Task) {
+  // A drag (vuedraggable) also ends in a click; ignore it by comparing movement.
+  const start = dragStart.value
+  if (start && (Math.abs(event.clientX - start.x) > 4 || Math.abs(event.clientY - start.y) > 4)) {
+    return
   }
+  emit('openTask', task)
 }
 </script>
 
@@ -101,7 +111,7 @@ function removeTask(taskId: string) {
       <div class="text-3">{{ column.tasks.length }}</div>
       <div
         v-if="column.mode === 'horizontal'"
-        class="cursor-pointer text-#fda92d text-3 hover:opacity-70"
+        class="cursor-pointer text-#1f1f1f hover:text-#d92d20 text-3 hover:opacity-70"
         title="Delete Column"
         @click="removeColumn"
         i-carbon:trash-can
@@ -111,13 +121,14 @@ function removeTask(taskId: string) {
     <div v-if="column.mode === 'horizontal'" class="min-h-4">
       <draggable v-model="column.tasks" item-key="id" group="tasks" class="min-h-4">
         <template #item="{ element: task }">
-          <div class="flex justify-between mb-4 p-4 text-3 bg-#fff rounded-md">
-            <div class="leading-4 whitespace-pre-line">{{ task.content }}</div>
+          <div
+            class="mb-4 p-4 text-3 bg-#fff rounded-md cursor-pointer hover:shadow-md hover:shadow-#919eab22"
+            @pointerdown="onTaskPointerDown"
+            @click="onTaskClick($event, task)"
+          >
             <div
-              class="cursor-pointer text-#fda92d text-3 hover:opacity-70"
-              title="Delete Task"
-              @click="removeTask(task.id)"
-              i-carbon:trash-can
+              class="markdown-body max-h-24 overflow-hidden break-words"
+              v-html="renderMarkdown(task.content)"
             />
           </div>
         </template>
@@ -146,3 +157,102 @@ function removeTask(taskId: string) {
     </footer>
   </div>
 </template>
+
+<style scoped>
+/* Compact markdown typography for task cards */
+.markdown-body :deep(p) {
+  margin: 0.25em 0;
+  line-height: 1.5;
+}
+
+.markdown-body :deep(p:first-child) {
+  margin-top: 0;
+}
+
+.markdown-body :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.markdown-body :deep(ul),
+.markdown-body :deep(ol) {
+  margin: 0.25em 0;
+  padding-left: 1.25em;
+}
+
+.markdown-body :deep(li) {
+  margin: 0.15em 0;
+  line-height: 1.5;
+}
+
+.markdown-body :deep(a) {
+  color: #fda92d;
+  text-decoration: underline;
+}
+
+.markdown-body :deep(blockquote) {
+  margin: 0.4em 0;
+  padding-left: 0.6em;
+  border-left: 3px solid #fda92d;
+  color: #637381;
+}
+
+.markdown-body :deep(pre) {
+  margin: 0.4em 0;
+  padding: 0.6em;
+  overflow-x: auto;
+  background: #f6f8fa;
+  border-radius: 6px;
+  font-size: 0.8em;
+}
+
+.markdown-body :deep(code) {
+  font-family: var(--un-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+}
+
+.markdown-body :deep(p code),
+.markdown-body :deep(li code) {
+  padding: 0.1em 0.3em;
+  background: #f0f2f5;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.markdown-body :deep(h1),
+.markdown-body :deep(h2),
+.markdown-body :deep(h3),
+.markdown-body :deep(h4) {
+  margin: 0.5em 0 0.3em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.markdown-body :deep(h1) {
+  font-size: 1.1rem;
+}
+
+.markdown-body :deep(h2) {
+  font-size: 1rem;
+}
+
+.markdown-body :deep(h3) {
+  font-size: 0.95rem;
+}
+
+.markdown-body :deep(h4) {
+  font-size: 0.9rem;
+}
+
+.markdown-body :deep(input[type='checkbox']) {
+  margin-right: 0.3em;
+  cursor: pointer;
+}
+
+.markdown-body :deep(.task-list-item) {
+  list-style: none;
+}
+
+.markdown-body :deep(img) {
+  max-width: 100%;
+  border-radius: 4px;
+}
+</style>

@@ -2,6 +2,7 @@
 import { nextTick, onMounted, ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import ColumnCard from '@/components/ColumnCard.vue'
+import TaskDrawer from '@/components/TaskDrawer.vue'
 import { exportAllToExcel, exportToExcel, importFromExcel } from '@/composables/backup'
 import {
   createBoard,
@@ -11,7 +12,7 @@ import {
   renameBoard,
   saveColumns,
 } from '@/composables/db'
-import type { Board, Column } from '@/types'
+import type { Board, Column, Task } from '@/types'
 
 const LAST_BOARD_KEY = 'kanban.lastBoardId'
 const DEFAULT_BOARD_NAME = 'Kanban'
@@ -23,6 +24,36 @@ const loaded = ref(false)
 // While switching boards we must not let the deep watch write the "clearing"
 // columns array to the wrong board.
 let switching = false
+
+// —— Task detail drawer ——
+const activeTask = ref<Task | null>(null)
+
+function openTask(task: Task) {
+  activeTask.value = task
+}
+
+function saveTask(content: string) {
+  if (activeTask.value) activeTask.value.content = content
+  activeTask.value = null
+}
+
+function closeTask() {
+  activeTask.value = null
+}
+
+function deleteTask() {
+  const task = activeTask.value
+  if (!task) return
+  if (!window.confirm('Delete this task?')) return
+  for (const column of columns.value) {
+    const index = column.tasks.findIndex((t) => t.id === task.id)
+    if (index !== -1) {
+      column.tasks.splice(index, 1)
+      break
+    }
+  }
+  activeTask.value = null
+}
 
 onMounted(async () => {
   let list = await getBoards()
@@ -306,14 +337,14 @@ async function handleImport(event: Event) {
     <div class="flex w-fit">
       <draggable v-model="columns" item-key="id" class="flex gap-4 h-full">
         <template #item="{ element: column }">
-          <ColumnCard :column="column" @remove="removeColumn" />
+          <ColumnCard :column="column" @remove="removeColumn" @open-task="openTask" />
         </template>
       </draggable>
 
       <div class="ml-4 !w-280px">
         <div
           v-show="!isAddingColumn"
-          class="btn flex items-center justify-center gap3 h-2rem text-xs text-#1f1f1f hover:text-#637381 hover:bg-#f4f6f8 border border-solid border-[#919eab33] rounded-md cursor-pointer"
+          class="btn flex items-center justify-center gap3 h-2rem text-xs text-#fff bg-#fcb041 hover:bg-#f4f6f8 border border-solid border-[#919eab33] rounded-md cursor-pointer"
           @click="startAddColumn"
         >
           <div i-carbon:add-large />
@@ -331,5 +362,7 @@ async function handleImport(event: Event) {
         />
       </div>
     </div>
+
+    <TaskDrawer :task="activeTask" @save="saveTask" @close="closeTask" @delete="deleteTask" />
   </div>
 </template>
