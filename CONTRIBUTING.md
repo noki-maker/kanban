@@ -101,4 +101,4 @@ Each column has a `mode` of `horizontal` (default, full-width layout) or `vertic
 
 ## License
 
-This is a private project; see the repository owner for licensing questions.
+This project is released under the [MIT License](./LICENSE).

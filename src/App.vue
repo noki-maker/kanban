@@ -256,6 +256,10 @@ async function handleImport(event: Event) {
     input.value = ''
   }
 }
+
+const DISCORD_URL = 'https://discord.gg/cG9xWNW8sk'
+
+const GITHUB_URL = 'https://github.com/noki-maker/kanban'
 </script>
 
 <template>
@@ -330,6 +334,25 @@ async function handleImport(event: Event) {
           class="hidden"
           @change="handleImport"
         />
+
+        <a
+          :href="GITHUB_URL"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="flex items-center text-5 text-#181717 hover:opacity-80"
+          title="View source on GitHub"
+        >
+          <div i-simple-icons:github />
+        </a>
+        <a
+          :href="DISCORD_URL"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="flex items-center text-5 text-#5865F2 hover:opacity-80"
+          title="Join our Discord community"
+        >
+          <div i-simple-icons:discord />
+        </a>
       </div>
     </div>
 
