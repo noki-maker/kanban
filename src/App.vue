@@ -3,6 +3,7 @@ import { nextTick, onMounted, ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import ColumnCard from '@/components/ColumnCard.vue'
 import TaskDrawer from '@/components/TaskDrawer.vue'
+import { isDark, toggleTheme } from '@/composables/theme'
 import { exportAllToExcel, exportToExcel, importFromExcel } from '@/composables/backup'
 import {
   createBoard,
@@ -260,17 +261,68 @@ async function handleImport(event: Event) {
 const DISCORD_URL = 'https://discord.gg/cG9xWNW8sk'
 
 const GITHUB_URL = 'https://github.com/noki-maker/kanban'
+
+// —— Theme reveal animation ——
+const themeBtnRef = ref<HTMLDivElement>()
+const themeAnimating = ref(false)
+
+/** Read the resolved `--c-bg` for a given theme without leaving the DOM in a
+ *  changed state (no paint happens between the synchronous class toggles). */
+function readThemeBg(dark: boolean): string {
+  const root = document.documentElement
+  const wasDark = root.classList.contains('dark')
+  if (dark !== wasDark) root.classList.toggle('dark', dark)
+  const bg = getComputedStyle(root).getPropertyValue('--c-bg').trim() || '#ffffff'
+  if (dark !== wasDark) root.classList.toggle('dark', wasDark)
+  return bg
+}
+
+async function handleThemeToggle() {
+  const btn = themeBtnRef.value
+  if (!btn || themeAnimating.value) return
+  themeAnimating.value = true
+  const rect = btn.getBoundingClientRect()
+  const cx = rect.left + rect.width / 2
+  const cy = rect.top + rect.height / 2
+  const maxRadius = Math.hypot(
+    Math.max(cx, window.innerWidth - cx),
+    Math.max(cy, window.innerHeight - cy),
+  )
+  const newBg = readThemeBg(!isDark.value)
+
+  const overlay = document.createElement('div')
+  overlay.className = 'theme-reveal-overlay'
+  overlay.style.left = `${cx - maxRadius}px`
+  overlay.style.top = `${cy - maxRadius}px`
+  overlay.style.width = `${maxRadius * 2}px`
+  overlay.style.height = `${maxRadius * 2}px`
+  overlay.style.background = newBg
+  document.body.appendChild(overlay)
+
+  try {
+    const expand = overlay.animate([{ transform: 'scale(0)' }, { transform: 'scale(1)' }], {
+      duration: 450,
+      easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    })
+    await expand.finished
+    // Full screen is covered by the new-theme color: switch without a flash.
+    toggleTheme()
+  } finally {
+    overlay.remove()
+    themeAnimating.value = false
+  }
+}
 </script>
 
 <template>
   <div class="flex flex-col gap-4">
     <!-- Board toolbar -->
     <div
-      class="flex flex-wrap items-center gap-2 px-4 py-2.5 bg-#fff border border-solid border-[#919eab33] rounded-lg"
+      class="flex flex-wrap items-center gap-2 px-4 py-2.5 bg-[var(--c-bg)] border border-solid border-[var(--c-border)] rounded-lg"
     >
       <select
         :value="currentBoardId"
-        class="box-border h-2rem pl-2 pr-6 max-w-56 outline-none rounded-md border border-solid border-[#919eab33] text-xs text-#1f1f1f bg-#fff cursor-pointer focus-visible:ring-[#fda92d] focus-visible:ring-2"
+        class="box-border h-2rem pl-2 pr-6 max-w-56 outline-none rounded-md border border-solid border-[var(--c-border)] text-xs text-[var(--c-text)] bg-[var(--c-bg)] cursor-pointer focus-visible:ring-[#fda92d] focus-visible:ring-2"
         title="Switch Board"
         @change="onBoardSelect"
       >
@@ -281,21 +333,21 @@ const GITHUB_URL = 'https://github.com/noki-maker/kanban'
 
       <div class="flex items-center gap-2">
         <div
-          class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-#fff bg-#fcb041 border border-solid border-[#919eab33] rounded-md cursor-pointer hover:opacity-80"
+          class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-#fff bg-#fcb041 border border-solid border-[var(--c-border)] rounded-md cursor-pointer hover:opacity-80"
           @click="createNewBoard"
         >
           <div i-carbon:add-large />
           New Board
         </div>
         <div
-          class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-#1f1f1f hover:text-#637381 hover:bg-#f4f6f8 border border-solid border-[#919eab33] rounded-md cursor-pointer"
+          class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-[var(--c-text)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-soft)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
           @click="renameCurrentBoard"
         >
           <div i-carbon:edit />
           Rename
         </div>
         <div
-          class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-#1f1f1f hover:text-#d92d20 hover:bg-#f4f6f8 border border-solid border-[#919eab33] rounded-md cursor-pointer"
+          class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-[var(--c-text)] hover:text-[var(--c-danger)] hover:bg-[var(--c-bg-soft)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
           @click="deleteCurrentBoard"
         >
           <div i-carbon:trash-can />
@@ -307,21 +359,21 @@ const GITHUB_URL = 'https://github.com/noki-maker/kanban'
 
       <div class="flex items-center gap-2">
         <div
-          class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-#1f1f1f hover:text-#637381 hover:bg-#f4f6f8 border border-solid border-[#919eab33] rounded-md cursor-pointer"
+          class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-[var(--c-text)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-soft)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
           @click="exportBoard"
         >
           <div i-carbon:export />
           Export
         </div>
         <div
-          class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-#1f1f1f hover:text-#637381 hover:bg-#f4f6f8 border border-solid border-[#919eab33] rounded-md cursor-pointer"
+          class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-[var(--c-text)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-soft)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
           @click="exportAll"
         >
           <div i-carbon:archive />
           Export All
         </div>
         <div
-          class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-#1f1f1f hover:text-#637381 hover:bg-#f4f6f8 border border-solid border-[#919eab33] rounded-md cursor-pointer"
+          class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-[var(--c-text)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-soft)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
           @click="triggerImport"
         >
           <div i-carbon:download />
@@ -336,15 +388,6 @@ const GITHUB_URL = 'https://github.com/noki-maker/kanban'
         />
 
         <a
-          :href="GITHUB_URL"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="flex items-center text-5 text-#181717 hover:opacity-80"
-          title="View source on GitHub"
-        >
-          <div i-simple-icons:github />
-        </a>
-        <a
           :href="DISCORD_URL"
           target="_blank"
           rel="noopener noreferrer"
@@ -353,6 +396,26 @@ const GITHUB_URL = 'https://github.com/noki-maker/kanban'
         >
           <div i-simple-icons:discord />
         </a>
+        <a
+          :href="GITHUB_URL"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="flex items-center text-5 text-[var(--c-github)] hover:opacity-80"
+          title="View source on GitHub"
+        >
+          <div i-simple-icons:github />
+        </a>
+        <div
+          ref="themeBtnRef"
+          class="flex items-center text-5 text-[var(--c-text)] cursor-pointer"
+          :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+          @click="handleThemeToggle"
+        >
+          <Transition name="theme-toggle" mode="out-in">
+            <div v-if="isDark" key="sun" i-carbon:sun />
+            <div v-else key="moon" i-carbon:moon />
+          </Transition>
+        </div>
       </div>
     </div>
 
@@ -367,7 +430,7 @@ const GITHUB_URL = 'https://github.com/noki-maker/kanban'
       <div class="ml-4 !w-280px">
         <div
           v-show="!isAddingColumn"
-          class="btn flex items-center justify-center gap3 h-2rem text-xs text-#fff bg-#fcb041 hover:bg-#f4f6f8 border border-solid border-[#919eab33] rounded-md cursor-pointer"
+          class="btn flex items-center justify-center gap3 h-2rem text-xs text-#fff bg-#fcb041 hover:opacity-80 border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
           @click="startAddColumn"
         >
           <div i-carbon:add-large />
@@ -379,7 +442,7 @@ const GITHUB_URL = 'https://github.com/noki-maker/kanban'
           v-model="newColumnTitle"
           type="text"
           placeholder="Column Name"
-          class="box-border flex w-full h-2rem indent-2 outline-none rounded-md border border-solid border-[#919eab33] placeholder:text-#919eab focus-visible:ring-[#fda92d] focus-visible:ring-2"
+          class="box-border flex w-full h-2rem indent-2 outline-none rounded-md border border-solid border-[var(--c-border)] placeholder:text-[var(--c-text-placeholder)] focus-visible:ring-[#fda92d] focus-visible:ring-2"
           @blur="commitColumn"
           @keydown.enter="commitColumn"
         />
@@ -389,3 +452,29 @@ const GITHUB_URL = 'https://github.com/noki-maker/kanban'
     <TaskDrawer :task="activeTask" @save="saveTask" @close="closeTask" @delete="deleteTask" />
   </div>
 </template>
+
+<style scoped>
+.theme-toggle-enter-active {
+  transition:
+    opacity 0.25s ease-out 0.08s,
+    transform 0.3s ease-out 0.08s;
+}
+.theme-toggle-leave-active {
+  transition:
+    opacity 0.15s ease-in,
+    transform 0.2s ease-in;
+}
+.theme-toggle-enter-from,
+.theme-toggle-leave-to {
+  opacity: 0;
+  transform: rotate(120deg) scale(0.4);
+}
+
+:global(.theme-reveal-overlay) {
+  position: fixed;
+  z-index: 9999;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: transform;
+}
+</style>

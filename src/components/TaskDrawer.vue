@@ -83,10 +83,10 @@ function endResize(event: PointerEvent) {
         <div class="drawer-overlay" @click="onOverlayClick" />
         <div class="drawer-panel">
           <header
-            class="flex items-center gap-2 px-4 py-3 border-b border-solid border-[#919eab33]"
+            class="flex items-center gap-2 px-4 py-3 border-b border-solid border-[var(--c-border)]"
           >
             <button
-              class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-#fff bg-#fcb041 border border-solid border-[#919eab33] rounded-md cursor-pointer hover:opacity-80"
+              class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-#fff bg-#fcb041 border border-solid border-[var(--c-border)] rounded-md cursor-pointer hover:opacity-80"
               type="button"
               @click="save"
             >
@@ -95,13 +95,13 @@ function endResize(event: PointerEvent) {
             </button>
             <div class="flex-auto"></div>
             <div
-              class="cursor-pointer text-4 text-#1f1f1f hover:text-#d92d20 hover:opacity-70"
+              class="cursor-pointer text-4 text-[var(--c-text)] hover:text-[var(--c-danger)] hover:opacity-70"
               title="Delete Task"
               @click="onDeleteTask"
               i-carbon:trash-can
             />
             <div
-              class="cursor-pointer text-4 text-#1f1f1f hover:opacity-70"
+              class="cursor-pointer text-4 text-[var(--c-text)] hover:opacity-70"
               title="Close (Esc)"
               @click="emit('close')"
               i-carbon:close
@@ -123,7 +123,7 @@ function endResize(event: PointerEvent) {
                 ref="textareaEl"
                 name="textarea"
                 v-model="draft"
-                class="min-h-0 w-full box-border m-1 flex-1 resize-none text-sm leading-6 font-mono placeholder:text-#919eab border-0 focus:outline-none"
+                class="min-h-0 w-full box-border m-1 flex-1 resize-none text-sm leading-6 font-mono text-[var(--c-text)] bg-[var(--c-bg)] placeholder:text-[var(--c-text-placeholder)] border-0 focus:outline-none"
                 placeholder="Write markdown here…"
               />
             </div>
@@ -139,7 +139,7 @@ function endResize(event: PointerEvent) {
 
             <!-- Right: live preview -->
             <div
-              class="flex min-w-0 flex-1 flex-col bg-#fafbfc"
+              class="flex min-w-0 flex-1 flex-col bg-[var(--c-bg-preview)]"
               :class="{ 'select-none': isResizing }"
             >
               <div class="min-h-0 flex-1 overflow-auto">
@@ -174,7 +174,7 @@ function endResize(event: PointerEvent) {
   width: 80vw;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--c-bg);
   box-shadow: -8px 0 24px rgba(31, 31, 31, 0.12);
 }
 
@@ -222,7 +222,7 @@ function endResize(event: PointerEvent) {
   left: 50%;
   width: 1px;
   transform: translateX(-50%);
-  background: #919eab33;
+  background: var(--c-border);
 }
 
 .divider:hover::before {
@@ -280,14 +280,14 @@ function endResize(event: PointerEvent) {
   margin: 0.6em 0;
   padding-left: 0.8em;
   border-left: 3px solid #fda92d;
-  color: #637381;
+  color: var(--c-text-secondary);
 }
 
 .markdown-body :deep(pre) {
   margin: 0.6em 0;
   padding: 0.8em;
   overflow-x: auto;
-  background: #f6f8fa;
+  background: var(--c-bg-code);
   border-radius: 6px;
   font-size: 0.85rem;
 }
@@ -299,7 +299,7 @@ function endResize(event: PointerEvent) {
 .markdown-body :deep(p code),
 .markdown-body :deep(li code) {
   padding: 0.15em 0.35em;
-  background: #f0f2f5;
+  background: var(--c-bg-code-inline);
   border-radius: 4px;
   font-size: 0.9em;
 }
@@ -312,13 +312,13 @@ function endResize(event: PointerEvent) {
 .markdown-body :deep(th),
 .markdown-body :deep(td) {
   padding: 0.4em 0.7em;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--c-border-strong);
 }
 
 .markdown-body :deep(hr) {
   margin: 0.8em 0;
   border: none;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--c-border-strong);
 }
 
 .markdown-body :deep(input[type='checkbox']) {

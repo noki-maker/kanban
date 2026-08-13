@@ -75,7 +75,7 @@ function onTaskClick(event: MouseEvent, task: Task) {
 
 <template>
   <div
-    class="item w-280px h-fit p-4 bg-#f4f6f8 rounded-4"
+    class="item w-280px h-fit p-4 bg-[var(--c-bg-soft)] rounded-4"
     :class="{ 'w-28px': column.mode === 'vertical' }"
   >
     <header
@@ -97,7 +97,7 @@ function onTaskClick(event: MouseEvent, task: Task) {
         v-model="editingTitle"
         type="text"
         placeholder="Column name"
-        class="box-border flex w-full h-2rem indent-2 outline-none rounded-md border border-solid border-[#919eab33] placeholder:text-#919eab focus-visible:ring-[#fda92d] focus-visible:ring-2"
+        class="box-border flex w-full h-2rem indent-2 outline-none rounded-md border border-solid border-[var(--c-border)] placeholder:text-[var(--c-text-placeholder)] focus-visible:ring-[#fda92d] focus-visible:ring-2"
         @blur="commitTitle"
         @keydown.enter="commitTitle"
       />
@@ -111,7 +111,7 @@ function onTaskClick(event: MouseEvent, task: Task) {
       <div class="text-3">{{ column.tasks.length }}</div>
       <div
         v-if="column.mode === 'horizontal'"
-        class="cursor-pointer text-#1f1f1f hover:text-#d92d20 text-3 hover:opacity-70"
+        class="cursor-pointer text-[var(--c-text)] hover:text-[var(--c-danger)] text-3 hover:opacity-70"
         title="Delete Column"
         @click="removeColumn"
         i-carbon:trash-can
@@ -122,7 +122,7 @@ function onTaskClick(event: MouseEvent, task: Task) {
       <draggable v-model="column.tasks" item-key="id" group="tasks" class="min-h-4">
         <template #item="{ element: task }">
           <div
-            class="mb-4 p-4 text-3 bg-#fff rounded-md cursor-pointer hover:shadow-md hover:shadow-#919eab22"
+            class="mb-4 p-4 text-3 bg-[var(--c-bg)] rounded-md cursor-pointer hover:shadow-md hover:shadow-[var(--c-shadow)]"
             @pointerdown="onTaskPointerDown"
             @click="onTaskClick($event, task)"
           >
@@ -138,7 +138,7 @@ function onTaskClick(event: MouseEvent, task: Task) {
     <footer v-if="column.mode === 'horizontal'">
       <div
         v-show="!isAddingTask"
-        class="btn flex items-center justify-center gap3 h-2rem text-xs text-#fff bg-#fcb041 border border-solid border-[#919eab33] rounded-md cursor-pointer"
+        class="btn flex items-center justify-center gap3 h-2rem text-xs text-#fff bg-#fcb041 border border-solid border-[var(--c-border)] rounded-md cursor-pointer hover:opacity-80"
         @click="startAddTask"
       >
         <div i-carbon:add-large />
@@ -150,7 +150,7 @@ function onTaskClick(event: MouseEvent, task: Task) {
         v-model="newTaskContent"
         type="text"
         placeholder="Task content"
-        class="box-border flex w-full h-2rem indent-2 outline-none rounded-md border border-solid border-[#919eab33] placeholder:text-#919eab focus-visible:ring-[#fda92d] focus-visible:ring-2"
+        class="box-border flex w-full h-2rem indent-2 outline-none rounded-md border border-solid border-[var(--c-border)] placeholder:text-[var(--c-text-placeholder)] focus-visible:ring-[#fda92d] focus-visible:ring-2"
         @blur="commitTask"
         @keydown.enter="commitTask"
       />
@@ -193,14 +193,14 @@ function onTaskClick(event: MouseEvent, task: Task) {
   margin: 0.4em 0;
   padding-left: 0.6em;
   border-left: 3px solid #fda92d;
-  color: #637381;
+  color: var(--c-text-secondary);
 }
 
 .markdown-body :deep(pre) {
   margin: 0.4em 0;
   padding: 0.6em;
   overflow-x: auto;
-  background: #f6f8fa;
+  background: var(--c-bg-code);
   border-radius: 6px;
   font-size: 0.8em;
 }
@@ -212,7 +212,7 @@ function onTaskClick(event: MouseEvent, task: Task) {
 .markdown-body :deep(p code),
 .markdown-body :deep(li code) {
   padding: 0.1em 0.3em;
-  background: #f0f2f5;
+  background: var(--c-bg-code-inline);
   border-radius: 4px;
   font-size: 0.9em;
 }

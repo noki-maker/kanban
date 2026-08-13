@@ -4,6 +4,18 @@
     <meta charset="UTF-8" />
     <link rel="icon" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Apply the persisted theme before first paint to avoid a flash (FOUC).
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('kanban.theme')
+          var dark = stored
+            ? stored === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches
+          if (dark) document.documentElement.classList.add('dark')
+        } catch (e) {}
+      })()
+    </script>
     <title>Kanban</title>
   </head>
 

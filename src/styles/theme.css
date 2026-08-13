@@ -1,0 +1,46 @@
+:root {
+  color-scheme: light;
+
+  --c-bg: #ffffff;
+  --c-bg-soft: #f4f6f8;
+  --c-bg-preview: #fafbfc;
+  --c-bg-code: #f6f8fa;
+  --c-bg-code-inline: #f0f2f5;
+
+  --c-text: #1f1f1f;
+  --c-text-secondary: #637381;
+  --c-text-placeholder: #919eab;
+
+  --c-border: #919eab33;
+  --c-border-strong: #e2e8f0;
+
+  --c-danger: #d92d20;
+  --c-github: #181717;
+  --c-shadow: #919eab22;
+}
+
+html.dark {
+  color-scheme: dark;
+
+  --c-bg: #1e1f24;
+  --c-bg-soft: #26272c;
+  --c-bg-preview: #2a2b31;
+  --c-bg-code: #2a2b31;
+  --c-bg-code-inline: #35363d;
+
+  --c-text: #e8e8ea;
+  --c-text-secondary: #a5adb8;
+  --c-text-placeholder: #919eab;
+
+  --c-border: #919eab3d;
+  --c-border-strong: #3a3b42;
+
+  --c-danger: #f97066;
+  --c-github: #e8e8ea;
+  --c-shadow: #0000004d;
+}
+
+body {
+  color: var(--c-text);
+  background: var(--c-bg);
+}
