@@ -86,7 +86,7 @@ function endResize(event: PointerEvent) {
             class="flex items-center gap-2 px-4 py-3 border-b border-solid border-[var(--c-border)]"
           >
             <button
-              class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-#fff bg-#fcb041 border border-solid border-[var(--c-border)] rounded-md cursor-pointer hover:opacity-80"
+              class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-#fff bg-[var(--c-accent)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer hover:opacity-80"
               type="button"
               @click="save"
             >
@@ -207,11 +207,11 @@ function endResize(event: PointerEvent) {
 }
 
 .divider:hover {
-  background: #fda92d40;
+  background: color-mix(in srgb, var(--c-accent) 25%, transparent);
 }
 
 .divider:active {
-  background: #fda92d;
+  background: var(--c-accent);
 }
 
 .divider::before {
@@ -272,14 +272,14 @@ function endResize(event: PointerEvent) {
 }
 
 .markdown-body :deep(a) {
-  color: #fda92d;
+  color: var(--c-accent);
   text-decoration: underline;
 }
 
 .markdown-body :deep(blockquote) {
   margin: 0.6em 0;
   padding-left: 0.8em;
-  border-left: 3px solid #fda92d;
+  border-left: 3px solid var(--c-accent);
   color: var(--c-text-secondary);
 }
 

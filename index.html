@@ -14,6 +14,23 @@
             : window.matchMedia('(prefers-color-scheme: dark)').matches
           if (dark) document.documentElement.classList.add('dark')
         } catch (e) {}
+
+        try {
+          var accent = localStorage.getItem('kanban.accent')
+          if (accent && /^#[0-9a-f]{6}$/i.test(accent)) {
+            document.documentElement.style.setProperty('--c-accent', accent)
+            var favicon = document.querySelector('link[rel="icon"]')
+            if (favicon) {
+              favicon.href =
+                'data:image/svg+xml;utf8,' +
+                encodeURIComponent(
+                  '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><path fill="none" stroke="' +
+                    accent +
+                    '" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9.4c0-2.24 0-3.36.436-4.216a4 4 0 0 1 1.748-1.748C6.04 3 7.16 3 9.4 3h5.2c2.24 0 3.36 0 4.216.436a4 4 0 0 1 1.748 1.748C21 6.04 21 7.16 21 9.4v5.2c0 2.24 0 3.36-.436 4.216a4 4 0 0 1-1.748 1.748C17.96 21 16.84 21 14.6 21H9.4c-2.24 0-3.36 0-4.216-.436a4 4 0 0 1-1.748-1.748C3 17.96 3 16.84 3 14.6zM17 7v4m-5-4v8M7 7v6"/></svg>',
+                )
+            }
+          }
+        } catch (e) {}
       })()
     </script>
     <title>Kanban</title>

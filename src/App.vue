@@ -3,6 +3,7 @@ import { nextTick, onMounted, ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import ColumnCard from '@/components/ColumnCard.vue'
 import TaskDrawer from '@/components/TaskDrawer.vue'
+import ThemeSwitcher from '@/components/ThemeSwitcher.vue'
 import { isDark, toggleTheme } from '@/composables/theme'
 import { exportAllToExcel, exportToExcel, importFromExcel } from '@/composables/backup'
 import {
@@ -322,7 +323,7 @@ async function handleThemeToggle() {
     >
       <select
         :value="currentBoardId"
-        class="box-border h-2rem pl-2 pr-6 max-w-56 outline-none rounded-md border border-solid border-[var(--c-border)] text-xs text-[var(--c-text)] bg-[var(--c-bg)] cursor-pointer focus-visible:ring-[#fda92d] focus-visible:ring-2"
+        class="box-border h-2rem pl-2 pr-6 max-w-56 outline-none rounded-md border border-solid border-[var(--c-border)] text-xs text-[var(--c-text)] bg-[var(--c-bg)] cursor-pointer focus-visible:ring-[var(--c-accent)] focus-visible:ring-2"
         title="Switch Board"
         @change="onBoardSelect"
       >
@@ -333,7 +334,7 @@ async function handleThemeToggle() {
 
       <div class="flex items-center gap-2">
         <div
-          class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-#fff bg-#fcb041 border border-solid border-[var(--c-border)] rounded-md cursor-pointer hover:opacity-80"
+          class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-#fff bg-[var(--c-accent)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer hover:opacity-80"
           @click="createNewBoard"
         >
           <div i-carbon:add-large />
@@ -405,6 +406,9 @@ async function handleThemeToggle() {
         >
           <div i-simple-icons:github />
         </a>
+
+        <ThemeSwitcher />
+
         <div
           ref="themeBtnRef"
           class="flex items-center text-5 text-[var(--c-text)] cursor-pointer"
@@ -430,7 +434,7 @@ async function handleThemeToggle() {
       <div class="ml-4 !w-280px">
         <div
           v-show="!isAddingColumn"
-          class="btn flex items-center justify-center gap3 h-2rem text-xs text-#fff bg-#fcb041 hover:opacity-80 border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
+          class="btn flex items-center justify-center gap3 h-2rem text-xs text-#fff bg-[var(--c-accent)] hover:opacity-80 border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
           @click="startAddColumn"
         >
           <div i-carbon:add-large />
@@ -442,7 +446,7 @@ async function handleThemeToggle() {
           v-model="newColumnTitle"
           type="text"
           placeholder="Column Name"
-          class="box-border flex w-full h-2rem indent-2 outline-none rounded-md border border-solid border-[var(--c-border)] placeholder:text-[var(--c-text-placeholder)] focus-visible:ring-[#fda92d] focus-visible:ring-2"
+          class="box-border flex w-full h-2rem indent-2 outline-none rounded-md border border-solid border-[var(--c-border)] placeholder:text-[var(--c-text-placeholder)] focus-visible:ring-[var(--c-accent)] focus-visible:ring-2"
           @blur="commitColumn"
           @keydown.enter="commitColumn"
         />
