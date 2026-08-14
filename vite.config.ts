@@ -79,6 +79,8 @@ export default defineConfig({
       },
     ],
   },
+  // Deployed to GitHub Pages under the /kanban/ subpath
+  base: '/kanban/',
   plugins: lazyPlugins(() => [UnoCSS(), vue()]),
   resolve: {
     alias: {
