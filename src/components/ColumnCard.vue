@@ -254,8 +254,37 @@ function onTaskClick(event: MouseEvent, task: Task) {
 }
 
 .markdown-body :deep(input[type='checkbox']) {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  width: 14px;
+  height: 14px;
   margin-right: 0.3em;
   cursor: pointer;
+  vertical-align: middle;
+  border: 1px solid var(--c-border-strong);
+  border-radius: 4px;
+  background: var(--c-bg);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.markdown-body :deep(input[type='checkbox']:checked) {
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+}
+
+.markdown-body :deep(input[type='checkbox']:checked::after) {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  width: 4px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -50%) rotate(45deg);
 }
 
 .markdown-body :deep(.task-list-item) {

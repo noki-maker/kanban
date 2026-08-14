@@ -25,5 +25,10 @@ const md: InstanceType<typeof MarkdownIt> = new MarkdownIt({
 md.use(taskLists)
 
 export function renderMarkdown(source: string): string {
-  return DOMPurify.sanitize(md.render(source ?? ''))
+  let html = md.render(source ?? '')
+  // The task-list plugin renders checked boxes as `disabled`, which makes
+  // browsers desaturate the checkbox to gray. Drop the attribute so the
+  // theme accent color stays vivid.
+  html = html.replace(/\sdisabled(?:="[^"]*")?(?=[\s>])/g, '')
+  return DOMPurify.sanitize(html)
 }
