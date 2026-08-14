@@ -26,11 +26,17 @@ watch(
 onMounted(() => window.addEventListener('keydown', onWindowKeydown))
 onUnmounted(() => window.removeEventListener('keydown', onWindowKeydown))
 
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
+const saveShortcutLabel = isMac ? '⌘S' : 'Ctrl + S'
+
 function onWindowKeydown(event: KeyboardEvent) {
   if (!props.task) return
   if (event.key === 'Escape') {
     emit('close')
   } else if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+    event.preventDefault()
+    save()
+  } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
     event.preventDefault()
     save()
   }
@@ -89,6 +95,7 @@ function endResize(event: PointerEvent) {
             <button
               class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-#fff bg-[var(--c-accent)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer hover:opacity-80"
               type="button"
+              :title="saveShortcutLabel"
               @click="save"
             >
               <div i-carbon:checkmark />
