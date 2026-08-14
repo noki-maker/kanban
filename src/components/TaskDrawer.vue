@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import ConfirmDropdown from '@/components/ConfirmDropdown.vue'
 import type { Task } from '@/types'
 import { renderMarkdown } from '@/composables/markdown'
 
@@ -38,7 +39,7 @@ function onWindowKeydown(event: KeyboardEvent) {
 const rendered = computed(() => renderMarkdown(draft.value))
 
 function onDeleteTask() {
-  if (window.confirm('Delete this task?')) emit('delete')
+  emit('delete')
 }
 
 function save() {
@@ -94,12 +95,17 @@ function endResize(event: PointerEvent) {
               Save
             </button>
             <div class="flex-auto"></div>
-            <div
-              class="cursor-pointer text-4 text-[var(--c-text)] hover:text-[var(--c-danger)] hover:opacity-70"
-              title="Delete Task"
-              @click="onDeleteTask"
-              i-carbon:trash-can
-            />
+            <ConfirmDropdown confirm-text="Delete Task" @confirm="onDeleteTask">
+              <template #default="{ toggle, open }">
+                <div
+                  class="cursor-pointer text-4 text-[var(--c-text)] hover:text-[var(--c-danger)] hover:opacity-70"
+                  :class="open ? 'text-[var(--c-danger)]' : ''"
+                  title="Delete Task"
+                  @click="toggle"
+                  i-carbon:trash-can
+                />
+              </template>
+            </ConfirmDropdown>
             <div
               class="cursor-pointer text-4 text-[var(--c-text)] hover:opacity-70"
               title="Close (Esc)"

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nextTick, ref } from 'vue'
 import draggable from 'vuedraggable'
+import ConfirmDropdown from '@/components/ConfirmDropdown.vue'
 import type { Column, Task } from '@/types'
 import { renderMarkdown } from '@/composables/markdown'
 
@@ -49,11 +50,9 @@ function toggleMode() {
   props.column.mode = props.column.mode === 'horizontal' ? 'vertical' : 'horizontal'
 }
 
-// —— Delete (single click with confirmation) ——
+// —— Delete (confirmed from the dropdown) ——
 function removeColumn() {
-  if (window.confirm(`Delete column "${props.column.title}" and all its tasks?`)) {
-    emit('remove', props.column)
-  }
+  emit('remove', props.column)
 }
 
 // —— Open task detail (single click with confirmation) ——
@@ -113,13 +112,21 @@ function onTaskClick(event: MouseEvent, task: Task) {
       >
         {{ column.tasks.length }}
       </div>
-      <div
+      <ConfirmDropdown
         v-if="column.mode === 'horizontal'"
-        class="cursor-pointer text-[var(--c-text)] hover:text-[var(--c-danger)] text-3 hover:opacity-70"
-        title="Delete Column"
-        @click="removeColumn"
-        i-carbon:trash-can
-      />
+        confirm-text="Delete Column"
+        @confirm="removeColumn"
+      >
+        <template #default="{ toggle, open }">
+          <div
+            class="cursor-pointer text-[var(--c-text)] hover:text-[var(--c-danger)] text-3 hover:opacity-70"
+            :class="open ? 'text-[var(--c-danger)]' : ''"
+            title="Delete Column"
+            @click="toggle"
+            i-carbon:trash-can
+          />
+        </template>
+      </ConfirmDropdown>
     </header>
 
     <div v-if="column.mode === 'horizontal'" class="min-h-4">

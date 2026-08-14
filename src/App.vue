@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import ColumnCard from '@/components/ColumnCard.vue'
+import ConfirmDropdown from '@/components/ConfirmDropdown.vue'
 import TaskDrawer from '@/components/TaskDrawer.vue'
 import ThemeSwitcher from '@/components/ThemeSwitcher.vue'
 import { isDark, toggleTheme } from '@/composables/theme'
@@ -46,7 +47,6 @@ function closeTask() {
 function deleteTask() {
   const task = activeTask.value
   if (!task) return
-  if (!window.confirm('Delete this task?')) return
   for (const column of columns.value) {
     const index = column.tasks.findIndex((t) => t.id === task.id)
     if (index !== -1) {
@@ -107,6 +107,9 @@ async function switchBoard(boardId: string) {
 const isAddingBoard = ref(false)
 const newBoardInput = ref<HTMLInputElement>()
 const newBoardName = ref('')
+const isRenaming = ref(false)
+const renameInput = ref<HTMLInputElement>()
+const renameValue = ref('')
 
 function startAddBoard() {
   isAddingBoard.value = true
@@ -128,16 +131,27 @@ async function commitNewBoard() {
 async function renameCurrentBoard() {
   const current = boards.value.find((b) => b.id === currentBoardId.value)
   if (!current) return
-  const name = window.prompt('Rename board:', current.name)
-  if (!name?.trim() || name.trim() === current.name) return
-  current.name = name.trim()
-  await renameBoard(current.id, name.trim())
+  isRenaming.value = true
+  renameValue.value = current.name
+  nextTick(() => renameInput.value?.focus())
+}
+
+async function commitRename() {
+  const name = renameValue.value.trim()
+  // Reset state synchronously so a blur triggered by the Enter-submit
+  // cannot commit the rename twice while awaiting.
+  isRenaming.value = false
+  renameValue.value = ''
+  if (!name) return
+  const current = boards.value.find((b) => b.id === currentBoardId.value)
+  if (!current || name === current.name) return
+  current.name = name
+  await renameBoard(current.id, name)
 }
 
 async function deleteCurrentBoard() {
   const current = boards.value.find((b) => b.id === currentBoardId.value)
   if (!current) return
-  if (!window.confirm(`Delete board "${current.name}" and all its columns?`)) return
   switching = true
   try {
     await deleteBoard(current.id)
@@ -427,19 +441,35 @@ async function handleThemeToggle() {
           @keydown.enter="commitNewBoard"
         />
         <div
-          class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-[var(--c-text)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-soft)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
+          v-show="!isRenaming"
+          class="btn box-border flex items-center justify-center gap1 !w-36 h-2rem text-xs text-[var(--c-text)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-soft)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
           @click="renameCurrentBoard"
         >
           <div i-carbon:edit />
           Rename
         </div>
-        <div
-          class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-[var(--c-text)] hover:text-[var(--c-danger)] hover:bg-[var(--c-bg-soft)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
-          @click="deleteCurrentBoard"
-        >
-          <div i-carbon:trash-can />
-          Delete
-        </div>
+        <input
+          v-show="isRenaming"
+          ref="renameInput"
+          v-model="renameValue"
+          type="text"
+          placeholder="Board Name"
+          class="box-border !w-36 h-2rem indent-2 outline-none rounded-md border border-solid border-[var(--c-border)] placeholder:text-[var(--c-text-placeholder)] focus-visible:ring-[var(--c-accent)] focus-visible:ring-inset focus-visible:ring-2"
+          @blur="commitRename"
+          @keydown.enter="commitRename"
+        />
+        <ConfirmDropdown confirm-text="Delete Board" @confirm="deleteCurrentBoard">
+          <template #default="{ toggle, open }">
+            <div
+              class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-[var(--c-text)] hover:text-[var(--c-danger)] hover:bg-[var(--c-bg-soft)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
+              :class="open ? 'bg-[var(--c-bg-soft)] text-[var(--c-danger)]' : ''"
+              @click="toggle"
+            >
+              <div i-carbon:trash-can />
+              Delete
+            </div>
+          </template>
+        </ConfirmDropdown>
       </div>
 
       <div class="flex-auto"></div>
