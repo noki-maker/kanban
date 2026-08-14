@@ -2,6 +2,8 @@
 
 Thanks for your interest in contributing to kanban. This document covers the development workflow, project structure, and conventions.
 
+**简体中文版本见 [CONTRIBUTING.zh-CN.md](./CONTRIBUTING.zh-CN.md)。**
+
 ## Prerequisites
 
 - [Node.js](https://nodejs.org) `^22.18.0 || >=24.12.0`
