@@ -5,7 +5,7 @@ import type { Task } from '@/types'
 import { t } from '@/composables/i18n'
 import { renderMarkdown } from '@/composables/markdown'
 
-const props = defineProps<{ task: Task | null }>()
+const props = defineProps<{ task: Task | null; columnName?: string }>()
 const emit = defineEmits<{ close: []; save: [content: string]; delete: [] }>()
 
 const draft = ref('')
@@ -93,6 +93,13 @@ function endResize(event: PointerEvent) {
           <header
             class="flex items-center gap-2 px-4 py-3 border-b border-solid border-[var(--c-border)]"
           >
+            <div
+              v-if="columnName"
+              class="flex items-center gap-1 px-1 h-2rem text-xs text-[var(--c-text-secondary)]"
+            >
+              <div i-carbon:column />
+              <span class="max-w-40 truncate">{{ columnName }}</span>
+            </div>
             <button
               class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-#fff bg-[var(--c-accent)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer hover:opacity-80"
               type="button"

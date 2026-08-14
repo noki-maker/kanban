@@ -14,6 +14,7 @@ A simple, self-hosted Kanban board that runs **entirely in your browser** — no
 - **Markdown editing** — write in Markdown, preview live side-by-side; rendered task checkboxes follow the theme accent color.
 - **Theming** — light / dark mode and an accent color picker, persisted across visits.
 - **i18n** — built-in Simplified Chinese / English switching (one-click toggle, persisted).
+- **Instant search** — press `Ctrl/Cmd + K` to search boards, columns and tasks across all boards, and jump straight to the result.
 - **Backup & migration** — export boards to `.xlsx` and import them back, on any machine.
 - **Privacy** — everything is stored locally in your browser; nothing leaves your device.
 
@@ -32,6 +33,19 @@ pnpm dev
 Your board is created automatically on first launch — there is nothing to configure.
 
 ## Usage Guide
+
+### Global Search
+
+Press `Ctrl/Cmd + K` anywhere (or click the **Search** button in the board toolbar) to open the spotlight-style search panel. It searches **across all boards** — board names, column titles and task content:
+
+| Key                   | Action                   |
+| --------------------- | ------------------------ |
+| `↑` / `↓`             | Move through results     |
+| `Enter`               | Open the selected result |
+| `Esc` / click outside | Close the panel          |
+
+- Matching text is highlighted in each result.
+- Selecting a **task** switches to its board and opens the task drawer; selecting a **board** or **column** jumps straight to it.
 
 ### Boards
 
@@ -57,7 +71,7 @@ Your last-used board is remembered and reopened next time.
 ### Tasks
 
 - **Add a task** — click **Add Task** at the bottom of a column, type the content, press Enter (or click away).
-- **Edit a task** — click a task card to open the **task drawer**, where you can rewrite it as Markdown.
+- **Edit a task** — click a task card to open the **task drawer**, where you can rewrite it as Markdown. The name of the task's column is shown next to the **Save** button so you always know where you are.
 - **Move tasks** — drag a task card and drop it anywhere: reorder within a column or move it to another column.
 - **Delete a task** — open the task drawer and click the trash icon in the top-right corner.
 
@@ -93,9 +107,9 @@ Raw HTML is disabled and all output is sanitized.
 
 ### Backup & Migration
 
-Since data lives in the browser (IndexedDB), use the export/import tools to back up or move your board:
+Since data lives in the browser (IndexedDB), use the export/import tools to back up or move your board. They live under the **⇄ (import/export)** button in the board toolbar:
 
-| Button         | What it does                                                                                                                |
+| Menu item      | What it does                                                                                                                |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | **Export**     | Downloads the current board as an `.xlsx` file (one sheet per column)                                                       |
 | **Export All** | Downloads every board into a single `.xlsx` workbook                                                                        |

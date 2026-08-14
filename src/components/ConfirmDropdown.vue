@@ -14,8 +14,12 @@ function toggle() {
   open.value = !open.value
 }
 
-function confirm() {
+function close() {
   open.value = false
+}
+
+function confirm() {
+  close()
   emit('confirm')
 }
 
@@ -49,14 +53,16 @@ onBeforeUnmount(() => {
         class="absolute top-full right-0 z-50 mt-2 min-w-36 rounded-xl border border-solid border-[var(--c-border)] bg-[var(--c-bg)] p-1.5 shadow-xl shadow-[var(--c-shadow)]"
         role="menu"
       >
-        <div
-          role="menuitem"
-          class="box-border flex w-full items-center gap-2 px-2 py-1.5 text-left text-xs text-[var(--c-danger)] rounded-lg cursor-pointer transition-colors duration-200 hover:bg-[var(--c-danger)] hover:text-#fff"
-          @click="confirm"
-        >
-          <div class="i-carbon:trash-can text-sm" />
-          {{ confirmText ?? 'Delete' }}
-        </div>
+        <slot name="menu" :close="close">
+          <div
+            role="menuitem"
+            class="box-border flex w-full items-center gap-2 px-2 py-1.5 text-left text-xs text-[var(--c-danger)] rounded-lg cursor-pointer transition-colors duration-200 hover:bg-[var(--c-danger)] hover:text-#fff"
+            @click="confirm"
+          >
+            <div class="i-carbon:trash-can text-sm" />
+            {{ confirmText ?? 'Delete' }}
+          </div>
+        </slot>
       </div>
     </Transition>
   </div>

@@ -4,6 +4,7 @@ import draggable from 'vuedraggable'
 import ColumnCard from '@/components/ColumnCard.vue'
 import ConfirmDropdown from '@/components/ConfirmDropdown.vue'
 import LangSwitcher from '@/components/LangSwitcher.vue'
+import SearchPanel from '@/components/SearchPanel.vue'
 import TaskDrawer from '@/components/TaskDrawer.vue'
 import ThemeSwitcher from '@/components/ThemeSwitcher.vue'
 import { t } from '@/composables/i18n'
@@ -17,7 +18,7 @@ import {
   renameBoard,
   saveColumns,
 } from '@/composables/db'
-import type { Board, Column, Task } from '@/types'
+import type { Board, Column, SearchResult, Task } from '@/types'
 
 const LAST_BOARD_KEY = 'kanban.lastBoardId'
 const DEFAULT_BOARD_NAME = 'Kanban'
@@ -30,20 +31,46 @@ const loaded = ref(false)
 // columns array to the wrong board.
 let switching = false
 
+// —— Cross-board search (Ctrl/Cmd + K) ——
+const searchOpen = ref(false)
+
+function findTaskById(id: string): Task | undefined {
+  for (const column of columns.value) {
+    const found = column.tasks.find((task) => task.id === id)
+    if (found) return found
+  }
+  return undefined
+}
+
+async function openSearchResult(result: SearchResult) {
+  if (result.kind !== 'task') {
+    await switchBoard(result.board.id)
+    return
+  }
+  await switchBoard(result.board.id)
+  const task = findTaskById(result.task.id)
+  if (task) openTask(task)
+}
+
 // —— Task detail drawer ——
 const activeTask = ref<Task | null>(null)
+const activeColumnName = ref('')
 
 function openTask(task: Task) {
   activeTask.value = task
+  const column = columns.value.find((c) => c.tasks.some((t) => t.id === task.id))
+  activeColumnName.value = column?.title ?? ''
 }
 
 function saveTask(content: string) {
   if (activeTask.value) activeTask.value.content = content
   activeTask.value = null
+  activeColumnName.value = ''
 }
 
 function closeTask() {
   activeTask.value = null
+  activeColumnName.value = ''
 }
 
 function deleteTask() {
@@ -57,6 +84,7 @@ function deleteTask() {
     }
   }
   activeTask.value = null
+  activeColumnName.value = ''
 }
 
 onMounted(async () => {
@@ -194,8 +222,14 @@ function onDocumentClick(event: MouseEvent) {
 }
 
 function onKeydown(event: KeyboardEvent) {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+    event.preventDefault()
+    searchOpen.value = !searchOpen.value
+    return
+  }
   if (event.key === 'Escape') {
     boardMenuOpen.value = false
+    searchOpen.value = false
   }
 }
 
@@ -442,7 +476,7 @@ async function handleThemeToggle() {
         />
         <div
           v-show="!isRenaming"
-          class="btn box-border flex items-center justify-center gap1 !w-36 h-2rem text-xs text-[var(--c-text)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-soft)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
+          class="btn box-border flex items-center justify-center gap1 !w-36 h-2rem text-xs text-[var(--c-text)] hover:text-[var(--c-accent)] hover:bg-[color-mix(in_srgb,var(--c-accent)_12%,transparent)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
           @click="renameCurrentBoard"
         >
           <div i-carbon:edit />
@@ -470,6 +504,17 @@ async function handleThemeToggle() {
             </div>
           </template>
         </ConfirmDropdown>
+        <div
+          class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-[var(--c-text)] hover:text-[var(--c-accent)] hover:bg-[color-mix(in_srgb,var(--c-accent)_12%,transparent)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
+          @click="searchOpen = true"
+        >
+          <div i-carbon:search />
+          {{ t('search') }}
+          <span
+            class="ml-1 px-1.5 py-0.5 text-[var(--c-text-secondary)] bg-[var(--c-bg-soft)] border border-solid border-[var(--c-border)] rounded"
+            >Ctrl K</span
+          >
+        </div>
       </div>
 
       <div class="flex-auto"></div>
@@ -477,6 +522,7 @@ async function handleThemeToggle() {
       <div class="flex items-center gap-2">
         <div
           v-show="!isAddingColumn"
+          ,
           class="btn flex items-center justify-center gap1 !w-36 h-2rem text-xs text-#fff bg-[var(--c-accent)] border-none rounded-md cursor-pointer hover:opacity-80"
           @click="startAddColumn"
         >
@@ -493,27 +539,56 @@ async function handleThemeToggle() {
           @blur="commitColumn"
           @keydown.enter="commitColumn"
         />
-        <div
-          class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-[var(--c-text)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-soft)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
-          @click="exportBoard"
-        >
-          <div i-carbon:export />
-          {{ t('export') }}
-        </div>
-        <div
-          class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-[var(--c-text)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-soft)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
-          @click="exportAll"
-        >
-          <div i-carbon:archive />
-          {{ t('exportAll') }}
-        </div>
-        <div
-          class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-[var(--c-text)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-soft)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
-          @click="triggerImport"
-        >
-          <div i-carbon:download />
-          {{ t('import') }}
-        </div>
+        <ConfirmDropdown>
+          <template #default="{ toggle, open }">
+            <div
+              class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-[var(--c-text)] hover:text-[var(--c-accent)] hover:bg-[color-mix(in_srgb,var(--c-accent)_12%,transparent)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
+              :class="
+                open
+                  ? 'bg-[color-mix(in_srgb,var(--c-accent)_12%,transparent)] text-[var(--c-accent)]'
+                  : ''
+              "
+              @click="toggle"
+            >
+              <div i-carbon:import-export />
+            </div>
+          </template>
+          <template #menu="{ close }">
+            <div
+              role="menuitem"
+              class="box-border flex w-full items-center gap-2 px-2 py-1.5 text-left text-xs text-[var(--c-text)] rounded-lg cursor-pointer transition-colors duration-200 hover:bg-[color-mix(in_srgb,var(--c-accent)_12%,transparent)] hover:text-[var(--c-accent)]"
+              @click="
+                exportBoard()
+                close()
+              "
+            >
+              <div class="i-carbon:export text-sm" />
+              {{ t('export') }}
+            </div>
+            <div
+              role="menuitem"
+              class="box-border flex w-full items-center gap-2 px-2 py-1.5 text-left text-xs text-[var(--c-text)] rounded-lg cursor-pointer transition-colors duration-200 hover:bg-[color-mix(in_srgb,var(--c-accent)_12%,transparent)] hover:text-[var(--c-accent)]"
+              @click="
+                exportAll()
+                close()
+              "
+            >
+              <div class="i-carbon:archive text-sm" />
+              {{ t('exportAll') }}
+            </div>
+            <div
+              role="menuitem"
+              class="box-border flex w-full items-center gap-2 px-2 py-1.5 text-left text-xs text-[var(--c-text)] rounded-lg cursor-pointer transition-colors duration-200 hover:bg-[color-mix(in_srgb,var(--c-accent)_12%,transparent)] hover:text-[var(--c-accent)]"
+              @click="
+                triggerImport()
+                close()
+              "
+            >
+              <div class="i-carbon:download text-sm" />
+              {{ t('import') }}
+            </div>
+          </template>
+        </ConfirmDropdown>
         <input
           ref="importInput"
           type="file"
@@ -568,7 +643,14 @@ async function handleThemeToggle() {
       </draggable>
     </div>
 
-    <TaskDrawer :task="activeTask" @save="saveTask" @close="closeTask" @delete="deleteTask" />
+    <TaskDrawer
+      :task="activeTask"
+      :column-name="activeColumnName"
+      @save="saveTask"
+      @close="closeTask"
+      @delete="deleteTask"
+    />
+    <SearchPanel :open="searchOpen" @select="openSearchResult" @close="searchOpen = false" />
   </div>
 </template>
 

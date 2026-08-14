@@ -19,3 +19,9 @@ export interface Column {
   mode: 'horizontal' | 'vertical'
   order: number
 }
+
+/** A cross-board search hit: a matching board, column, or task. */
+export type SearchResult =
+  | { kind: 'board'; board: Board }
+  | { kind: 'column'; board: Board; column: Column }
+  | { kind: 'task'; board: Board; column: Column; task: Task }

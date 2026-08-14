@@ -127,3 +127,41 @@ export async function getColumns(boardId: string): Promise<Column[]> {
     return []
   }
 }
+
+// —— Search ——
+
+export interface BoardWithColumns extends Board {
+  columns: Column[]
+}
+
+/** Read all boards and their columns in one pass (used for cross-board search). */
+export async function getAllData(): Promise<BoardWithColumns[]> {
+  try {
+    const [boards, allColumns] = await Promise.all([db.boards.toArray(), db.columns.toArray()])
+    // Normalize raw records: old data may be missing title / tasks / mode / order fields
+    const columnsByBoard = new Map<string, Column[]>()
+    for (const c of allColumns) {
+      const column: Column = {
+        id: c.id,
+        boardId: c.boardId,
+        title: typeof c.title === 'string' ? c.title : '',
+        tasks: Array.isArray(c.tasks) ? c.tasks : [],
+        mode: c.mode === 'vertical' ? 'vertical' : 'horizontal',
+        order: typeof c.order === 'number' ? c.order : 0,
+      }
+      const list = columnsByBoard.get(column.boardId)
+      if (list) list.push(column)
+      else columnsByBoard.set(column.boardId, [column])
+    }
+    return boards
+      .slice()
+      .sort((a, b) => a.order - b.order)
+      .map((board) => ({
+        ...board,
+        columns: (columnsByBoard.get(board.id) ?? []).sort((a, b) => a.order - b.order),
+      }))
+  } catch (error) {
+    console.error('Failed to load all data:', error)
+    return []
+  }
+}

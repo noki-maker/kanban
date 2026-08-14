@@ -47,4 +47,12 @@ export default {
   colorYellow: '黄色',
   // Language
   language: '语言',
+  // Search
+  search: '搜索',
+  searchPlaceholder: '搜索看板、列、任务… (Ctrl+K)',
+  searchHint: '输入关键词，跨所有看板搜索',
+  searchNoResults: '未找到匹配结果',
+  searchNavHint: '选择',
+  searchOpenHint: '打开',
+  searchCloseHint: '关闭',
 }

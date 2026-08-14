@@ -47,4 +47,12 @@ export default {
   colorYellow: 'Yellow',
   // Language
   language: 'Language',
+  // Search
+  search: 'Search',
+  searchPlaceholder: 'Search boards, columns, tasks… (Ctrl+K)',
+  searchHint: 'Start typing to search across all boards',
+  searchNoResults: 'No matching results',
+  searchNavHint: 'Navigate',
+  searchOpenHint: 'Open',
+  searchCloseHint: 'Close',
 }
