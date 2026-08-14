@@ -1,6 +1,19 @@
 # kanban
 
+> **🚀 Try it now: [https://noki-maker.github.io/kanban/](https://noki-maker.github.io/kanban/)**
+
 A simple, self-hosted Kanban board that runs **entirely in your browser** — no server, no account, no data leaves your machine.
+
+**简体中文版本见 [README.zh-CN.md](./README.zh-CN.md)。**
+
+## Features
+
+- **Boards, columns & tasks** — full drag-and-drop support for reordering and moving.
+- **Markdown editing** — write in Markdown, preview live side-by-side; rendered task checkboxes follow the theme accent color.
+- **Theming** — light / dark mode and an accent color picker, persisted across visits.
+- **i18n** — built-in Simplified Chinese / English switching (one-click toggle, persisted).
+- **Backup & migration** — export boards to `.xlsx` and import them back, on any machine.
+- **Privacy** — everything is stored locally in your browser; nothing leaves your device.
 
 ## Getting Started
 
@@ -56,10 +69,11 @@ Clicking a task opens a right-side drawer with a **side-by-side split**:
 
 Drawer shortcuts:
 
-| Key                | Action           |
-| ------------------ | ---------------- |
-| `Esc`              | Close the drawer |
-| `Ctrl/Cmd + Enter` | Save and close   |
+| Key                | Action                |
+| ------------------ | --------------------- |
+| `Esc`              | Close the drawer      |
+| `Ctrl/Cmd + Enter` | Save and close        |
+| `Ctrl/Cmd + S`     | Save and keep editing |
 
 Click **Save** to persist your changes, or click away / press `Esc` to discard them.
 
@@ -86,6 +100,11 @@ Since data lives in the browser (IndexedDB), use the export/import tools to back
 | **Import**     | Loads `.xlsx` / `.xls` files. Sheets matching an existing board name are **merged into it**; other sheets create new boards |
 
 > Tip: export regularly — clearing your browser's site data will erase your board.
+
+### Language & Theme
+
+- **Language** — the button in the top-right corner toggles between **中文** and **EN**. Your choice is remembered (and so is the page title, which switches between "Kanban" and "看板").
+- **Theme** — the same toolbar hosts a light / dark mode toggle and a color picker for the accent color. Both are persisted as well.
 
 ## Data & Privacy
 

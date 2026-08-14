@@ -1,0 +1,50 @@
+export default {
+  // App
+  appTitle: '看板',
+  // Board toolbar
+  switchBoard: '切换看板',
+  newBoard: '新建看板',
+  boardName: '看板名称',
+  rename: '重命名',
+  delete: '删除',
+  deleteBoard: '删除看板',
+  addColumn: '添加列',
+  columnName: '列名称',
+  export: '导出',
+  exportAll: '导出全部',
+  import: '导入',
+  discordTitle: '加入 Discord 社区',
+  githubTitle: '在 GitHub 查看源码',
+  lightMode: '切换到浅色模式',
+  darkMode: '切换到深色模式',
+  // Alerts
+  exportFailed: '导出失败：{message}',
+  importFailed: '导入失败：{message}',
+  noBoardData: '文件中未找到看板数据。',
+  noColumnData: '文件中未找到列数据。',
+  skippedSheets: ' 已跳过 {count} 个无法识别的工作表。',
+  importedSummary: '已导入 {columns} 个列：新建 {created} 个看板，合并 {merged} 个。',
+  noWorksheet: '文件中不包含任何工作表。',
+  unrecognizedFormat: '无法识别的工作表格式：需要包含 "Column Title" 和 "Task" 表头。',
+  // Column
+  columnNamePlaceholder: '列名称',
+  deleteColumn: '删除列',
+  addTask: '添加任务',
+  taskContent: '任务内容',
+  // Task drawer
+  save: '保存',
+  deleteTask: '删除任务',
+  close: '关闭 (Esc)',
+  writeMarkdown: '在此输入 Markdown…',
+  dragToResize: '拖动调整大小',
+  // Theme switcher
+  chooseColor: '选择颜色',
+  chooseAccent: '选择强调色',
+  colorCyan: '青色',
+  colorBlue: '蓝色',
+  colorPurple: '紫色',
+  colorGreen: '绿色',
+  colorYellow: '黄色',
+  // Language
+  language: '语言',
+}

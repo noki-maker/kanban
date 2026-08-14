@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { t } from '@/composables/i18n'
 import { ACCENT_COLORS, accentColor, setAccentColor } from '@/composables/theme'
 
-const COLOR_NAMES: Record<string, string> = {
-  '#0891b2': 'Cyan',
-  '#2563eb': 'Blue',
-  '#9333ea': 'Purple',
-  '#16a34a': 'Green',
-  '#fcb041': 'Yellow',
-}
+const COLOR_NAMES = computed<Record<string, string>>(() => ({
+  '#0891b2': t('colorCyan'),
+  '#2563eb': t('colorBlue'),
+  '#9333ea': t('colorPurple'),
+  '#16a34a': t('colorGreen'),
+  '#fcb041': t('colorYellow'),
+}))
 
 const open = ref(false)
 const rootRef = ref<HTMLElement>()
@@ -53,8 +54,8 @@ onBeforeUnmount(() => {
       type="button"
       class="relative flex items-center justify-center text-5 text-[var(--c-text)] rounded-md cursor-pointer transition-colors duration-200 hover:bg-[var(--c-bg-soft)]"
       :class="open ? 'bg-[var(--c-bg-soft)]' : ''"
-      title="Choose Color"
-      aria-label="Choose accent color"
+      :title="t('chooseColor')"
+      :aria-label="t('chooseAccent')"
       :aria-expanded="open"
       @click="toggle"
     >

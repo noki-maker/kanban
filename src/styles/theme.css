@@ -46,3 +46,13 @@ body {
   color: var(--c-text);
   background: var(--c-bg);
 }
+
+/* The whole app uses the monospace font (the `font-mono` class lives on the
+   app root). Form controls don't inherit font families by default, so force
+   them to. */
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+}

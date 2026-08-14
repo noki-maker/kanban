@@ -4,6 +4,7 @@
 // columns without tasks are exported as a single info row with an empty Task cell.
 // One board maps to one worksheet; the sheet name is the board name.
 import * as XLSX from 'xlsx'
+import { t } from '@/composables/i18n'
 import type { Board, Column } from '@/types'
 
 const HEADER_COLUMN_ID = 'Column ID'
@@ -112,7 +113,7 @@ export async function exportAllToExcel(
 export async function importFromExcel(file: File): Promise<ImportedBoard[]> {
   const data = await file.arrayBuffer()
   const wb = XLSX.read(data, { type: 'array' })
-  if (wb.SheetNames.length === 0) throw new Error('The file does not contain any worksheet.')
+  if (wb.SheetNames.length === 0) throw new Error(t('noWorksheet'))
 
   const result: ImportedBoard[] = []
   for (const sheetName of wb.SheetNames) {
@@ -152,7 +153,7 @@ function parseSheet(sheet: XLSX.WorkSheet): Column[] {
   const modeIdx = header.indexOf(HEADER_COLUMN_MODE)
   const taskIdx = header.indexOf(HEADER_TASK)
   if (titleIdx === -1 || taskIdx === -1) {
-    throw new Error('Unrecognized sheet format: "Column Title" and "Task" headers are required.')
+    throw new Error(t('unrecognizedFormat'))
   }
   const cell = (row: unknown[], idx: number) => (idx === -1 ? '' : cellString(row[idx]))
 

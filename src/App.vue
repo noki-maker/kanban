@@ -3,8 +3,10 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import ColumnCard from '@/components/ColumnCard.vue'
 import ConfirmDropdown from '@/components/ConfirmDropdown.vue'
+import LangSwitcher from '@/components/LangSwitcher.vue'
 import TaskDrawer from '@/components/TaskDrawer.vue'
 import ThemeSwitcher from '@/components/ThemeSwitcher.vue'
+import { t } from '@/composables/i18n'
 import { isDark, toggleTheme } from '@/composables/theme'
 import { exportAllToExcel, exportToExcel, importFromExcel } from '@/composables/backup'
 import {
@@ -242,7 +244,7 @@ async function exportAll() {
     await exportAllToExcel(boards.value, getColumns)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    window.alert(`Export failed: ${message}`)
+    window.alert(t('exportFailed', { message }))
   }
 }
 
@@ -259,7 +261,7 @@ async function handleImport(event: Event) {
     const valid = imported.filter((b) => !b.error)
     const failed = imported.filter((b) => b.error)
     if (valid.length === 0) {
-      window.alert(`Import failed: ${failed[0]?.error ?? 'No board data found in the file.'}`)
+      window.alert(t('importFailed', { message: failed[0]?.error ?? t('noBoardData') }))
       return
     }
 
@@ -300,17 +302,15 @@ async function handleImport(event: Event) {
     }
 
     if (created === 0 && merged === 0) {
-      window.alert('No column data found in the file.')
+      window.alert(t('noColumnData'))
       return
     }
     if (firstCreatedId) await switchBoard(firstCreatedId)
-    const errorNote = failed.length > 0 ? ` Skipped ${failed.length} unrecognized sheet(s).` : ''
-    window.alert(
-      `Imported ${addedColumns} column(s): ${created} new board(s), ${merged} merged.${errorNote}`,
-    )
+    const errorNote = failed.length > 0 ? t('skippedSheets', { count: failed.length }) : ''
+    window.alert(t('importedSummary', { columns: addedColumns, created, merged }) + errorNote)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    window.alert(`Import failed: ${message}`)
+    window.alert(t('importFailed', { message }))
   } finally {
     input.value = ''
   }
@@ -383,7 +383,7 @@ async function handleThemeToggle() {
           type="button"
           class="box-border flex h-2rem min-w-36 max-w-56 items-center gap-2 rounded-md border border-solid border-[var(--c-border)] bg-[var(--c-bg)] px-2 text-xs text-[var(--c-text)] cursor-pointer transition-colors duration-200 hover:bg-[var(--c-bg-soft)]"
           :class="boardMenuOpen ? 'bg-[var(--c-bg-soft)]' : ''"
-          title="Switch Board"
+          :title="t('switchBoard')"
           aria-haspopup="listbox"
           :aria-expanded="boardMenuOpen"
           @click="toggleBoardMenu"
@@ -428,14 +428,14 @@ async function handleThemeToggle() {
           @click="startAddBoard"
         >
           <div i-carbon:add-large />
-          New Board
+          {{ t('newBoard') }}
         </div>
         <input
           ref="newBoardInput"
           v-show="isAddingBoard"
           v-model="newBoardName"
           type="text"
-          placeholder="Board Name"
+          :placeholder="t('boardName')"
           class="box-border !w-36 h-2rem indent-2 outline-none rounded-md border border-solid border-[var(--c-border)] placeholder:text-[var(--c-text-placeholder)] focus-visible:ring-[var(--c-accent)] focus-visible:ring-inset focus-visible:ring-2"
           @blur="commitNewBoard"
           @keydown.enter="commitNewBoard"
@@ -446,19 +446,19 @@ async function handleThemeToggle() {
           @click="renameCurrentBoard"
         >
           <div i-carbon:edit />
-          Rename
+          {{ t('rename') }}
         </div>
         <input
           v-show="isRenaming"
           ref="renameInput"
           v-model="renameValue"
           type="text"
-          placeholder="Board Name"
+          :placeholder="t('boardName')"
           class="box-border !w-36 h-2rem indent-2 outline-none rounded-md border border-solid border-[var(--c-border)] placeholder:text-[var(--c-text-placeholder)] focus-visible:ring-[var(--c-accent)] focus-visible:ring-inset focus-visible:ring-2"
           @blur="commitRename"
           @keydown.enter="commitRename"
         />
-        <ConfirmDropdown confirm-text="Delete Board" @confirm="deleteCurrentBoard">
+        <ConfirmDropdown :confirm-text="t('deleteBoard')" @confirm="deleteCurrentBoard">
           <template #default="{ toggle, open }">
             <div
               class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-[var(--c-text)] hover:text-[var(--c-danger)] hover:bg-[var(--c-bg-soft)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
@@ -466,7 +466,7 @@ async function handleThemeToggle() {
               @click="toggle"
             >
               <div i-carbon:trash-can />
-              Delete
+              {{ t('delete') }}
             </div>
           </template>
         </ConfirmDropdown>
@@ -481,14 +481,14 @@ async function handleThemeToggle() {
           @click="startAddColumn"
         >
           <div i-carbon:add-large />
-          Add Column
+          {{ t('addColumn') }}
         </div>
         <input
           v-show="isAddingColumn"
           ref="newColumnInput"
           v-model="newColumnTitle"
           type="text"
-          placeholder="Column Name"
+          :placeholder="t('columnName')"
           class="box-border !w-36 h-2rem indent-2 outline-none rounded-md border border-solid border-[var(--c-border)] placeholder:text-[var(--c-text-placeholder)] focus-visible:ring-[var(--c-accent)] focus-visible:ring-inset focus-visible:ring-2"
           @blur="commitColumn"
           @keydown.enter="commitColumn"
@@ -498,21 +498,21 @@ async function handleThemeToggle() {
           @click="exportBoard"
         >
           <div i-carbon:export />
-          Export
+          {{ t('export') }}
         </div>
         <div
           class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-[var(--c-text)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-soft)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
           @click="exportAll"
         >
           <div i-carbon:archive />
-          Export All
+          {{ t('exportAll') }}
         </div>
         <div
           class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-[var(--c-text)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-soft)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
           @click="triggerImport"
         >
           <div i-carbon:download />
-          Import
+          {{ t('import') }}
         </div>
         <input
           ref="importInput"
@@ -527,7 +527,7 @@ async function handleThemeToggle() {
           target="_blank"
           rel="noopener noreferrer"
           class="flex items-center text-5 text-#5865F2 hover:opacity-80"
-          title="Join our Discord community"
+          :title="t('discordTitle')"
         >
           <div i-simple-icons:discord />
         </a>
@@ -536,17 +536,19 @@ async function handleThemeToggle() {
           target="_blank"
           rel="noopener noreferrer"
           class="flex items-center text-5 text-[var(--c-github)] hover:opacity-80"
-          title="View source on GitHub"
+          :title="t('githubTitle')"
         >
           <div i-simple-icons:github />
         </a>
+
+        <LangSwitcher />
 
         <ThemeSwitcher />
 
         <div
           ref="themeBtnRef"
           class="flex items-center text-5 text-[var(--c-text)] cursor-pointer"
-          :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+          :title="isDark ? t('lightMode') : t('darkMode')"
           @click="handleThemeToggle"
         >
           <Transition name="theme-toggle" mode="out-in">

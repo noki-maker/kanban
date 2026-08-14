@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import ConfirmDropdown from '@/components/ConfirmDropdown.vue'
 import type { Task } from '@/types'
+import { t } from '@/composables/i18n'
 import { renderMarkdown } from '@/composables/markdown'
 
 const props = defineProps<{ task: Task | null }>()
@@ -86,7 +87,7 @@ function endResize(event: PointerEvent) {
 <template>
   <Teleport to="body">
     <Transition name="drawer">
-      <div v-if="task" class="drawer-root">
+      <div v-if="task" class="drawer-root font-mono">
         <div class="drawer-overlay" @click="onOverlayClick" />
         <div class="drawer-panel">
           <header
@@ -99,15 +100,15 @@ function endResize(event: PointerEvent) {
               @click="save"
             >
               <div i-carbon:checkmark />
-              Save
+              {{ t('save') }}
             </button>
             <div class="flex-auto"></div>
-            <ConfirmDropdown confirm-text="Delete Task" @confirm="onDeleteTask">
+            <ConfirmDropdown :confirm-text="t('deleteTask')" @confirm="onDeleteTask">
               <template #default="{ toggle, open }">
                 <div
                   class="cursor-pointer text-4 text-[var(--c-text)] hover:text-[var(--c-danger)] hover:opacity-70"
                   :class="open ? 'text-[var(--c-danger)]' : ''"
-                  title="Delete Task"
+                  :title="t('deleteTask')"
                   @click="toggle"
                   i-carbon:trash-can
                 />
@@ -115,7 +116,7 @@ function endResize(event: PointerEvent) {
             </ConfirmDropdown>
             <div
               class="cursor-pointer text-4 text-[var(--c-text)] hover:opacity-70"
-              title="Close (Esc)"
+              :title="t('close')"
               @click="emit('close')"
               i-carbon:close
             />
@@ -136,14 +137,14 @@ function endResize(event: PointerEvent) {
                 ref="textareaEl"
                 name="textarea"
                 v-model="draft"
-                class="min-h-0 w-full box-border m-1 flex-1 resize-none text-sm leading-6 font-mono text-[var(--c-text)] bg-[var(--c-bg)] placeholder:text-[var(--c-text-placeholder)] border-0 focus:outline-none"
-                placeholder="Write markdown here…"
+                class="min-h-0 w-full box-border m-1 flex-1 resize-none text-sm leading-6 text-[var(--c-text)] bg-[var(--c-bg)] placeholder:text-[var(--c-text-placeholder)] border-0 focus:outline-none"
+                :placeholder="t('writeMarkdown')"
               />
             </div>
 
             <div
               class="divider shrink-0 cursor-col-resize"
-              title="Drag to resize"
+              :title="t('dragToResize')"
               @pointerdown="startResize"
               @pointermove="onResizeMove"
               @pointerup="endResize"

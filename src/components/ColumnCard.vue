@@ -3,6 +3,7 @@ import { nextTick, ref } from 'vue'
 import draggable from 'vuedraggable'
 import ConfirmDropdown from '@/components/ConfirmDropdown.vue'
 import type { Column, Task } from '@/types'
+import { t } from '@/composables/i18n'
 import { renderMarkdown } from '@/composables/markdown'
 
 const props = defineProps<{ column: Column }>()
@@ -95,7 +96,7 @@ function onTaskClick(event: MouseEvent, task: Task) {
         ref="titleInput"
         v-model="editingTitle"
         type="text"
-        placeholder="Column name"
+        :placeholder="t('columnNamePlaceholder')"
         class="box-border flex w-full h-2rem indent-2 outline-none rounded-md border border-solid border-[var(--c-border)] placeholder:text-[var(--c-text-placeholder)] focus-visible:ring-[var(--c-accent)] focus-visible:ring-2"
         @blur="commitTitle"
         @keydown.enter="commitTitle"
@@ -114,14 +115,14 @@ function onTaskClick(event: MouseEvent, task: Task) {
       </div>
       <ConfirmDropdown
         v-if="column.mode === 'horizontal'"
-        confirm-text="Delete Column"
+        :confirm-text="t('deleteColumn')"
         @confirm="removeColumn"
       >
         <template #default="{ toggle, open }">
           <div
             class="cursor-pointer text-[var(--c-text)] hover:text-[var(--c-danger)] text-3 hover:opacity-70"
             :class="open ? 'text-[var(--c-danger)]' : ''"
-            title="Delete Column"
+            :title="t('deleteColumn')"
             @click="toggle"
             i-carbon:trash-can
           />
@@ -153,14 +154,14 @@ function onTaskClick(event: MouseEvent, task: Task) {
         @click="startAddTask"
       >
         <div i-carbon:add-large />
-        Add Task
+        {{ t('addTask') }}
       </div>
       <input
         v-show="isAddingTask"
         ref="taskInput"
         v-model="newTaskContent"
         type="text"
-        placeholder="Task content"
+        :placeholder="t('taskContent')"
         class="box-border flex w-full h-2rem indent-2 outline-none rounded-md border border-solid border-[var(--c-border)] placeholder:text-[var(--c-text-placeholder)] focus-visible:ring-[var(--c-accent)] focus-visible:ring-2"
         @blur="commitTask"
         @keydown.enter="commitTask"

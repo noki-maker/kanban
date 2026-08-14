@@ -1,0 +1,50 @@
+export default {
+  // App
+  appTitle: 'Kanban',
+  // Board toolbar
+  switchBoard: 'Switch Board',
+  newBoard: 'New Board',
+  boardName: 'Board Name',
+  rename: 'Rename',
+  delete: 'Delete',
+  deleteBoard: 'Delete Board',
+  addColumn: 'Add Column',
+  columnName: 'Column Name',
+  export: 'Export',
+  exportAll: 'Export All',
+  import: 'Import',
+  discordTitle: 'Join our Discord community',
+  githubTitle: 'View source on GitHub',
+  lightMode: 'Switch to light mode',
+  darkMode: 'Switch to dark mode',
+  // Alerts
+  exportFailed: 'Export failed: {message}',
+  importFailed: 'Import failed: {message}',
+  noBoardData: 'No board data found in the file.',
+  noColumnData: 'No column data found in the file.',
+  skippedSheets: ' Skipped {count} unrecognized sheet(s).',
+  importedSummary: 'Imported {columns} column(s): {created} new board(s), {merged} merged.',
+  noWorksheet: 'The file does not contain any worksheet.',
+  unrecognizedFormat: 'Unrecognized sheet format: "Column Title" and "Task" headers are required.',
+  // Column
+  columnNamePlaceholder: 'Column name',
+  deleteColumn: 'Delete Column',
+  addTask: 'Add Task',
+  taskContent: 'Task content',
+  // Task drawer
+  save: 'Save',
+  deleteTask: 'Delete Task',
+  close: 'Close (Esc)',
+  writeMarkdown: 'Write markdown here…',
+  dragToResize: 'Drag to resize',
+  // Theme switcher
+  chooseColor: 'Choose Color',
+  chooseAccent: 'Choose accent color',
+  colorCyan: 'Cyan',
+  colorBlue: 'Blue',
+  colorPurple: 'Purple',
+  colorGreen: 'Green',
+  colorYellow: 'Yellow',
+  // Language
+  language: 'Language',
+}

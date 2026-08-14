@@ -4,9 +4,18 @@
     <meta charset="UTF-8" />
     <link rel="icon" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kanban</title>
     <script>
-      // Apply the persisted theme before first paint to avoid a flash (FOUC).
+      // Apply the persisted theme and locale before first paint to avoid a flash (FOUC).
       ;(function () {
+        try {
+          var storedLocale = localStorage.getItem('kanban.locale')
+          if (storedLocale === 'en' || storedLocale === 'zh') {
+            document.documentElement.lang = storedLocale
+            document.title = storedLocale === 'zh' ? '看板' : 'Kanban'
+          }
+        } catch (e) {}
+
         try {
           var stored = localStorage.getItem('kanban.theme')
           var dark = stored
@@ -33,11 +42,10 @@
         } catch (e) {}
       })()
     </script>
-    <title>Kanban</title>
   </head>
 
   <body>
-    <div id="app"></div>
+    <div id="app" class="font-mono"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
