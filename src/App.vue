@@ -286,6 +286,22 @@ function triggerImport() {
   importInput.value?.click()
 }
 
+// Wrappers that close the import/export dropdown after the action
+function runExportBoard(close: () => void) {
+  exportBoard()
+  close()
+}
+
+function runExportAll(close: () => void) {
+  void exportAll()
+  close()
+}
+
+function runImport(close: () => void) {
+  triggerImport()
+  close()
+}
+
 async function handleImport(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
@@ -557,10 +573,7 @@ async function handleThemeToggle() {
             <div
               role="menuitem"
               class="box-border flex w-full items-center gap-2 px-2 py-1.5 text-left text-xs text-[var(--c-text)] rounded-lg cursor-pointer transition-colors duration-200 hover:bg-[color-mix(in_srgb,var(--c-accent)_12%,transparent)] hover:text-[var(--c-accent)]"
-              @click="
-                exportBoard()
-                close()
-              "
+              @click="runExportBoard(close)"
             >
               <div class="i-carbon:export text-sm" />
               {{ t('export') }}
@@ -568,10 +581,7 @@ async function handleThemeToggle() {
             <div
               role="menuitem"
               class="box-border flex w-full items-center gap-2 px-2 py-1.5 text-left text-xs text-[var(--c-text)] rounded-lg cursor-pointer transition-colors duration-200 hover:bg-[color-mix(in_srgb,var(--c-accent)_12%,transparent)] hover:text-[var(--c-accent)]"
-              @click="
-                exportAll()
-                close()
-              "
+              @click="runExportAll(close)"
             >
               <div class="i-carbon:archive text-sm" />
               {{ t('exportAll') }}
@@ -579,10 +589,7 @@ async function handleThemeToggle() {
             <div
               role="menuitem"
               class="box-border flex w-full items-center gap-2 px-2 py-1.5 text-left text-xs text-[var(--c-text)] rounded-lg cursor-pointer transition-colors duration-200 hover:bg-[color-mix(in_srgb,var(--c-accent)_12%,transparent)] hover:text-[var(--c-accent)]"
-              @click="
-                triggerImport()
-                close()
-              "
+              @click="runImport(close)"
             >
               <div class="i-carbon:download text-sm" />
               {{ t('import') }}
