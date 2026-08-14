@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import ColumnCard from '@/components/ColumnCard.vue'
 import TaskDrawer from '@/components/TaskDrawer.vue'
@@ -66,6 +66,13 @@ onMounted(async () => {
   const lastId = localStorage.getItem(LAST_BOARD_KEY)
   const lastBoard = list.find((b) => b.id === lastId)
   await loadBoard(lastBoard ? lastBoard.id : list[0]!.id)
+  document.addEventListener('click', onDocumentClick)
+  document.addEventListener('keydown', onKeydown)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocumentClick)
+  document.removeEventListener('keydown', onKeydown)
 })
 
 watch(
@@ -148,9 +155,32 @@ async function deleteCurrentBoard() {
   }
 }
 
-function onBoardSelect(event: Event) {
-  const id = (event.target as HTMLSelectElement).value
-  if (id) void switchBoard(id)
+// —— Board switcher dropdown ——
+const boardMenuOpen = ref(false)
+const boardMenuRootRef = ref<HTMLElement>()
+const currentBoardName = computed(
+  () => boards.value.find((b) => b.id === currentBoardId.value)?.name ?? '',
+)
+
+function toggleBoardMenu() {
+  boardMenuOpen.value = !boardMenuOpen.value
+}
+
+function selectBoard(id: string) {
+  if (id !== currentBoardId.value) void switchBoard(id)
+  boardMenuOpen.value = false
+}
+
+function onDocumentClick(event: MouseEvent) {
+  if (boardMenuRootRef.value && !boardMenuRootRef.value.contains(event.target as Node)) {
+    boardMenuOpen.value = false
+  }
+}
+
+function onKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    boardMenuOpen.value = false
+  }
 }
 
 // —— Add column ——
@@ -334,16 +364,48 @@ async function handleThemeToggle() {
     <div
       class="flex flex-wrap items-center gap-2 px-4 py-2.5 bg-[var(--c-bg)] border border-solid border-[var(--c-border)] rounded-lg"
     >
-      <select
-        :value="currentBoardId"
-        class="box-border h-2rem pl-2 pr-6 max-w-56 outline-none rounded-md border border-solid border-[var(--c-border)] text-xs text-[var(--c-text)] bg-[var(--c-bg)] cursor-pointer focus-visible:ring-[var(--c-accent)] focus-visible:ring-2"
-        title="Switch Board"
-        @change="onBoardSelect"
-      >
-        <option v-for="board in boards" :key="board.id" :value="board.id">
-          {{ board.name }}
-        </option>
-      </select>
+      <div ref="boardMenuRootRef" class="relative flex items-center">
+        <div
+          type="button"
+          class="box-border flex h-2rem min-w-36 max-w-56 items-center gap-2 rounded-md border border-solid border-[var(--c-border)] bg-[var(--c-bg)] px-2 text-xs text-[var(--c-text)] cursor-pointer transition-colors duration-200 hover:bg-[var(--c-bg-soft)]"
+          :class="boardMenuOpen ? 'bg-[var(--c-bg-soft)]' : ''"
+          title="Switch Board"
+          aria-haspopup="listbox"
+          :aria-expanded="boardMenuOpen"
+          @click="toggleBoardMenu"
+        >
+          <span class="truncate">{{ currentBoardName }}</span>
+          <div
+            class="ml-auto i-carbon:chevron-down text-sm transition-transform duration-200"
+            :class="{ 'rotate-180': boardMenuOpen }"
+          />
+        </div>
+
+        <Transition name="board-menu">
+          <div
+            v-if="boardMenuOpen"
+            class="absolute top-full left-0 z-50 mt-2 w-52 rounded-xl border border-solid border-[var(--c-border)] bg-[var(--c-bg)] p-1.5 shadow-xl shadow-[var(--c-shadow)]"
+            role="listbox"
+          >
+            <div
+              v-for="board in boards"
+              :key="board.id"
+              role="option"
+              :aria-selected="board.id === currentBoardId"
+              class="box-border flex w-full items-center gap-2.5 px-2 py-1.5 text-left text-xs text-[var(--c-text)] rounded-lg cursor-pointer transition-colors duration-200 hover:bg-[var(--c-bg-soft)]"
+              :class="board.id === currentBoardId ? 'bg-[var(--c-bg-soft)]' : ''"
+              @click="selectBoard(board.id)"
+            >
+              <span class="truncate">{{ board.name }}</span>
+              <span class="flex-auto" />
+              <span
+                v-if="board.id === currentBoardId"
+                class="i-carbon:checkmark text-sm text-[var(--c-accent)]"
+              />
+            </div>
+          </div>
+        </Transition>
+      </div>
 
       <div class="flex items-center gap-2">
         <div
@@ -479,6 +541,19 @@ async function handleThemeToggle() {
 </template>
 
 <style scoped>
+.board-menu-enter-active,
+.board-menu-leave-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  transform-origin: top left;
+}
+.board-menu-enter-from,
+.board-menu-leave-to {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+}
+
 .theme-toggle-enter-active {
   transition:
     opacity 0.25s ease-out 0.08s,
