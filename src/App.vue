@@ -97,10 +97,23 @@ async function switchBoard(boardId: string) {
 }
 
 // —— Board management ——
-async function createNewBoard() {
-  const name = window.prompt('New board name:')
-  if (!name?.trim()) return
-  const board = await createBoard(name.trim())
+const isAddingBoard = ref(false)
+const newBoardInput = ref<HTMLInputElement>()
+const newBoardName = ref('')
+
+function startAddBoard() {
+  isAddingBoard.value = true
+  nextTick(() => newBoardInput.value?.focus())
+}
+
+async function commitNewBoard() {
+  const name = newBoardName.value.trim()
+  // Reset state synchronously so a blur triggered by the Enter-submit
+  // cannot create the same board twice while awaiting.
+  isAddingBoard.value = false
+  newBoardName.value = ''
+  if (!name) return
+  const board = await createBoard(name)
   boards.value.push(board)
   await switchBoard(board.id)
 }
@@ -334,12 +347,23 @@ async function handleThemeToggle() {
 
       <div class="flex items-center gap-2">
         <div
-          class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-#fff bg-[var(--c-accent)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer hover:opacity-80"
-          @click="createNewBoard"
+          v-show="!isAddingBoard"
+          class="btn flex items-center justify-center gap1 !w-36 h-2rem text-xs text-#fff bg-[var(--c-accent)] border-none rounded-md cursor-pointer hover:opacity-80"
+          @click="startAddBoard"
         >
           <div i-carbon:add-large />
           New Board
         </div>
+        <input
+          ref="newBoardInput"
+          v-show="isAddingBoard"
+          v-model="newBoardName"
+          type="text"
+          placeholder="Board Name"
+          class="box-border !w-36 h-2rem indent-2 outline-none rounded-md border border-solid border-[var(--c-border)] placeholder:text-[var(--c-text-placeholder)] focus-visible:ring-[var(--c-accent)] focus-visible:ring-inset focus-visible:ring-2"
+          @blur="commitNewBoard"
+          @keydown.enter="commitNewBoard"
+        />
         <div
           class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-[var(--c-text)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-soft)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
           @click="renameCurrentBoard"
@@ -359,6 +383,24 @@ async function handleThemeToggle() {
       <div class="flex-auto"></div>
 
       <div class="flex items-center gap-2">
+        <div
+          v-show="!isAddingColumn"
+          class="btn flex items-center justify-center gap1 !w-36 h-2rem text-xs text-#fff bg-[var(--c-accent)] border-none rounded-md cursor-pointer hover:opacity-80"
+          @click="startAddColumn"
+        >
+          <div i-carbon:add-large />
+          Add Column
+        </div>
+        <input
+          v-show="isAddingColumn"
+          ref="newColumnInput"
+          v-model="newColumnTitle"
+          type="text"
+          placeholder="Column Name"
+          class="box-border !w-36 h-2rem indent-2 outline-none rounded-md border border-solid border-[var(--c-border)] placeholder:text-[var(--c-text-placeholder)] focus-visible:ring-[var(--c-accent)] focus-visible:ring-inset focus-visible:ring-2"
+          @blur="commitColumn"
+          @keydown.enter="commitColumn"
+        />
         <div
           class="btn flex items-center justify-center gap1 px-3 h-2rem text-xs text-[var(--c-text)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-soft)] border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
           @click="exportBoard"
@@ -430,27 +472,6 @@ async function handleThemeToggle() {
           <ColumnCard :column="column" @remove="removeColumn" @open-task="openTask" />
         </template>
       </draggable>
-
-      <div class="ml-4 !w-280px">
-        <div
-          v-show="!isAddingColumn"
-          class="btn flex items-center justify-center gap3 h-2rem text-xs text-#fff bg-[var(--c-accent)] hover:opacity-80 border border-solid border-[var(--c-border)] rounded-md cursor-pointer"
-          @click="startAddColumn"
-        >
-          <div i-carbon:add-large />
-          Add Column
-        </div>
-        <input
-          v-show="isAddingColumn"
-          ref="newColumnInput"
-          v-model="newColumnTitle"
-          type="text"
-          placeholder="Column Name"
-          class="box-border flex w-full h-2rem indent-2 outline-none rounded-md border border-solid border-[var(--c-border)] placeholder:text-[var(--c-text-placeholder)] focus-visible:ring-[var(--c-accent)] focus-visible:ring-2"
-          @blur="commitColumn"
-          @keydown.enter="commitColumn"
-        />
-      </div>
     </div>
 
     <TaskDrawer :task="activeTask" @save="saveTask" @close="closeTask" @delete="deleteTask" />

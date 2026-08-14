@@ -108,7 +108,11 @@ function onTaskClick(event: MouseEvent, task: Task) {
         i-carbon:chevron-down
       ></div>
       <div class="flex-auto"></div>
-      <div class="text-3">{{ column.tasks.length }}</div>
+      <div
+        class="flex items-center justify-center w-5 h-5 rounded-full text-2.5 text-#fff bg-[var(--c-accent)]"
+      >
+        {{ column.tasks.length }}
+      </div>
       <div
         v-if="column.mode === 'horizontal'"
         class="cursor-pointer text-[var(--c-text)] hover:text-[var(--c-danger)] text-3 hover:opacity-70"
