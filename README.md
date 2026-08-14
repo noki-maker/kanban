@@ -6,6 +6,8 @@ A simple, self-hosted Kanban board that runs **entirely in your browser** — no
 
 **简体中文版本见 [README.zh-CN.md](./README.zh-CN.md)。**
 
+![Kanban board](./public/kanban.png)
+
 ## Features
 
 - **Boards, columns & tasks** — full drag-and-drop support for reordering and moving.
