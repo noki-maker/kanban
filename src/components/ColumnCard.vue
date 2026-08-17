@@ -69,7 +69,30 @@ function onTaskClick(event: MouseEvent, task: Task) {
   if (start && (Math.abs(event.clientX - start.x) > 4 || Math.abs(event.clientY - start.y) > 4)) {
     return
   }
+  // Clicking a task-list checkbox toggles the todo, not the drawer.
+  if ((event.target as HTMLElement).closest('input[type="checkbox"]')) return
   emit('openTask', task)
+}
+
+// Toggle a task-list checkbox and persist it back into the markdown source.
+// Rendered checkboxes keep DOM order matching the task markers in the source,
+// so the nth rendered checkbox maps to the nth task marker.
+function onTaskCheckboxChange(event: Event, task: Task) {
+  const target = event.target as HTMLInputElement
+  if (target.type !== 'checkbox') return
+  const checkboxes = Array.from(
+    (event.currentTarget as HTMLElement).querySelectorAll<HTMLInputElement>(
+      'input[type="checkbox"]',
+    ),
+  )
+  const index = checkboxes.indexOf(target)
+  if (index === -1) return
+  const marker = target.checked ? '[x]' : '[ ]'
+  let current = 0
+  task.content = task.content.replace(
+    /^(\s*(?:[-+*]|\d+\.)\s+)\[[ xX]\](?=\s)/gm,
+    (match, prefix: string) => (current++ === index ? `${prefix}${marker}` : match),
+  )
 }
 </script>
 
@@ -137,6 +160,7 @@ function onTaskClick(event: MouseEvent, task: Task) {
             class="mb-4 p-4 text-3 bg-[var(--c-bg)] rounded-md cursor-pointer hover:shadow-md hover:shadow-[var(--c-shadow)]"
             @pointerdown="onTaskPointerDown"
             @click="onTaskClick($event, task)"
+            @change="onTaskCheckboxChange($event, task)"
           >
             <div
               class="markdown-body max-h-24 overflow-hidden break-words"
@@ -187,8 +211,8 @@ function onTaskClick(event: MouseEvent, task: Task) {
 
 .markdown-body :deep(ul),
 .markdown-body :deep(ol) {
-  margin: 0.25em 0;
-  padding-left: 1.25em;
+  margin: 0;
+  padding-left: 0;
 }
 
 .markdown-body :deep(li) {

@@ -56,10 +56,52 @@
   --ir-paren-color: var(--c-text-secondary);
 }
 
-/* Checkboxes follow the accent color. Native checkboxes ignore background /
-   border colors (appearance: auto), so use accent-color instead. */
+.vditor-reset ul,
+.vditor-reset ol {
+  padding-left: 0;
+}
+
+/* Task-list checkboxes follow the accent color with a white checkmark.
+   Native appearance (accent-color) lets the browser pick black or white based
+   on the accent's contrast, so a light custom accent yields a black checkmark;
+   style them explicitly for a consistent look. */
 .vditor .vditor-reset input[type='checkbox'] {
-  accent-color: var(--c-accent);
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  width: 15px;
+  height: 15px;
+  margin: 0 0.25em 0 0;
+  vertical-align: middle;
+  cursor: pointer;
+  border: 1px solid var(--c-border-strong);
+  border-radius: 4px;
+  background: var(--c-bg);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.vditor .vditor-reset input[type='checkbox']:checked {
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+}
+
+.vditor .vditor-reset input[type='checkbox']:checked::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.vditor .vditor-reset input[type='checkbox']:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 1px;
 }
 
 /* The toolbar is hidden; its functions are exposed via the editor's
