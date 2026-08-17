@@ -36,8 +36,8 @@ watch(isDark, (dark) => {
 })
 
 // —— Accent color ——
-export const DEFAULT_ACCENT = '#0891b2'
-export const ACCENT_COLORS = ['#0891b2', '#2563eb', '#9333ea', '#16a34a', '#fcb041']
+export const DEFAULT_ACCENT = '#9333ea'
+export const ACCENT_COLORS = ['#9333ea', '#2563eb', '#0891b2', '#16a34a', '#fcb041']
 
 function readStoredAccent(): string | null {
   try {

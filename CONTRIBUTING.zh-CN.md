@@ -84,7 +84,7 @@ markdown-it (html: false, linkify: true, breaks: true)
 ### 样式
 
 - 以 UnoCSS 工具类为主；自定义 CSS 尽量精简并保持作用域（`<style scoped>`）。
-- 应用强调色可由用户选择（默认 `#0891b2`，持久化在 `localStorage` 的 `kanban.accent` 中，工具栏 `ThemeSwitcher` 提供更多选项）；危险操作使用红色（`#d92d20`）。
+- 应用强调色可由用户选择（默认 `#9333ea`，持久化在 `localStorage` 的 `kanban.accent` 中，工具栏 `ThemeSwitcher` 提供更多选项）；危险操作使用红色（`#d92d20`）。
 - 渲染出的 Markdown 作用域样式位于 `.markdown-body :deep(...)` 类下。
 
 ### 类型安全

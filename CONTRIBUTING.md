@@ -84,7 +84,7 @@ Each column has a `mode` of `horizontal` (default, full-width layout) or `vertic
 ### Styling
 
 - Utility-first with UnoCSS; keep custom CSS minimal and scoped (`<style scoped>`).
-- The app accent color is user-selectable (default `#0891b2`, persisted in `localStorage` under `kanban.accent`, with more choices in the toolbar `ThemeSwitcher`); destructive actions use red (`#d92d20`).
+- The app accent color is user-selectable (default `#9333ea`, persisted in `localStorage` under `kanban.accent`, with more choices in the toolbar `ThemeSwitcher`); destructive actions use red (`#d92d20`).
 - Scoped styles for rendered Markdown live under a `.markdown-body :deep(...)` class.
 
 ### Type safety
