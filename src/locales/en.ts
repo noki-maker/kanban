@@ -45,6 +45,7 @@ export default {
   colorPurple: 'Purple',
   colorGreen: 'Green',
   colorYellow: 'Yellow',
+  customColor: 'Custom',
   // Language
   language: 'Language',
   // Search

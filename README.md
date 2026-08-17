@@ -12,7 +12,7 @@ A simple, self-hosted Kanban board that runs **entirely in your browser** — no
 
 - **Boards, columns & tasks** — full drag-and-drop support for reordering and moving.
 - **Markdown editing** — write in Markdown, preview live side-by-side; rendered task checkboxes follow the theme accent color.
-- **Theming** — light / dark mode and an accent color picker, persisted across visits.
+- **Theming** — light / dark mode and an accent color picker with preset colors plus fully custom hex colors, persisted across visits.
 - **i18n** — built-in Simplified Chinese / English switching (one-click toggle, persisted).
 - **Instant search** — press `Ctrl/Cmd + K` to search boards, columns and tasks across all boards, and jump straight to the result.
 - **Backup & migration** — export boards to `.xlsx` and import them back, on any machine.
@@ -120,7 +120,7 @@ Since data lives in the browser (IndexedDB), use the export/import tools to back
 ### Language & Theme
 
 - **Language** — the button in the top-right corner toggles between **中文** and **EN**. Your choice is remembered (and so is the page title, which switches between "Kanban" and "看板").
-- **Theme** — the same toolbar hosts a light / dark mode toggle and a color picker for the accent color. Both are persisted as well.
+- **Theme** — the same toolbar hosts a light / dark mode toggle and a color picker for the accent color. Besides the presets, you can pick any color with the system color picker or type a hex value (e.g. `#ff6b81`) directly. Both are persisted as well.
 
 ## Data & Privacy
 

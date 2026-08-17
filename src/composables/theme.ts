@@ -39,10 +39,30 @@ watch(isDark, (dark) => {
 export const DEFAULT_ACCENT = '#9333ea'
 export const ACCENT_COLORS = ['#9333ea', '#2563eb', '#0891b2', '#16a34a', '#fcb041']
 
+// Normalize a hex color: supports `#rgb` / `#rrggbb` (with or without `#`),
+// returns a 6-digit lowercase form, or `null` when invalid.
+export function normalizeHexColor(color: string): string | null {
+  const match = /^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(color.trim())
+  const hex = match?.[1]
+  if (!hex) return null
+  const six =
+    hex.length === 3
+      ? hex
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : hex
+  return `#${six.toLowerCase()}`
+}
+
+function isValidHex(color: string): boolean {
+  return /^#[0-9a-fA-F]{6}$/.test(color)
+}
+
 function readStoredAccent(): string | null {
   try {
     const stored = localStorage.getItem(ACCENT_KEY)
-    return stored && ACCENT_COLORS.includes(stored) ? stored : null
+    return stored && isValidHex(stored) ? stored : null
   } catch {
     return null
   }

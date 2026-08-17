@@ -45,6 +45,7 @@ export default {
   colorPurple: '紫色',
   colorGreen: '绿色',
   colorYellow: '黄色',
+  customColor: '自定义',
   // Language
   language: '语言',
   // Search

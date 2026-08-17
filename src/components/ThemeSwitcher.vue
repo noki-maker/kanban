@@ -1,7 +1,13 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { t } from '@/composables/i18n'
-import { ACCENT_COLORS, accentColor, setAccentColor } from '@/composables/theme'
+import {
+  ACCENT_COLORS,
+  DEFAULT_ACCENT,
+  accentColor,
+  normalizeHexColor,
+  setAccentColor,
+} from '@/composables/theme'
 
 const COLOR_NAMES = computed<Record<string, string>>(() => ({
   '#0891b2': t('colorCyan'),
@@ -14,6 +20,14 @@ const COLOR_NAMES = computed<Record<string, string>>(() => ({
 const open = ref(false)
 const rootRef = ref<HTMLElement>()
 
+const isCustom = computed(() => !ACCENT_COLORS.includes(accentColor.value))
+const currentHex = computed(() => normalizeHexColor(accentColor.value) ?? DEFAULT_ACCENT)
+const hexDraft = ref(currentHex.value)
+
+watch(currentHex, (value) => {
+  hexDraft.value = value
+})
+
 function toggle() {
   open.value = !open.value
 }
@@ -23,6 +37,20 @@ function select(color: string) {
     setAccentColor(color)
   }
   // Keep the panel open so the user can keep browsing the accordion.
+}
+
+function onPickerInput(event: Event) {
+  setAccentColor((event.target as HTMLInputElement).value)
+}
+
+function commitHex() {
+  const normalized = normalizeHexColor(hexDraft.value)
+  if (normalized) {
+    setAccentColor(normalized)
+  } else {
+    // Invalid input: fall back to the currently applied color.
+    hexDraft.value = currentHex.value
+  }
 }
 
 function onDocumentClick(event: MouseEvent) {
@@ -91,6 +119,40 @@ onBeforeUnmount(() => {
               v-if="accentColor === color"
               class="i-carbon:checkmark text-sm"
               :style="{ color }"
+            />
+          </div>
+        </div>
+
+        <div class="my-1 h-px bg-[var(--c-border)]" />
+
+        <div class="rounded-lg" :class="isCustom ? 'bg-[var(--c-bg-soft)]' : ''">
+          <div
+            class="box-border flex w-full items-center gap-2.5 px-2 py-1.5 text-left text-xs text-[var(--c-text)] rounded-lg"
+          >
+            <input
+              type="color"
+              class="size-4 shrink-0 cursor-pointer appearance-none rounded-full ring-1 transition-[box-shadow] duration-200 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch-wrapper]:rounded-full [&::-webkit-color-swatch-wrapper]:p-0"
+              :class="isCustom ? 'ring-[var(--c-accent)]' : 'ring-[var(--c-border)]'"
+              :value="currentHex"
+              :title="t('customColor')"
+              :aria-label="t('customColor')"
+              @input="onPickerInput"
+            />
+            <span class="text-[11px] leading-none">{{ t('customColor') }}</span>
+            <span class="flex-auto" />
+            <input
+              v-model="hexDraft"
+              type="text"
+              spellcheck="false"
+              placeholder="#RRGGBB"
+              class="box-border w-16 rounded-md border border-solid border-[var(--c-border)] bg-transparent px-1 py-0.5 font-mono text-[11px] text-[var(--c-text)] outline-none focus-visible:ring-1 focus-visible:ring-[var(--c-accent)]"
+              @change="commitHex"
+              @keydown.enter="commitHex"
+            />
+            <span
+              v-if="isCustom"
+              class="i-carbon:checkmark text-sm"
+              :style="{ color: accentColor }"
             />
           </div>
         </div>
