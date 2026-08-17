@@ -2,30 +2,38 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import ConfirmDropdown from '@/components/ConfirmDropdown.vue'
 import type { Task } from '@/types'
-import { t } from '@/composables/i18n'
-import { renderMarkdown } from '@/composables/markdown'
+import { locale, t } from '@/composables/i18n'
+import { isDark } from '@/composables/theme'
 
 const props = defineProps<{ task: Task | null; columnName?: string }>()
 const emit = defineEmits<{ close: []; save: [content: string]; delete: [] }>()
 
-const draft = ref('')
-const textareaEl = ref<HTMLTextAreaElement>()
-const splitEl = ref<HTMLDivElement>()
-const isResizing = ref(false)
-const leftPct = ref(50)
+const editorEl = ref<HTMLDivElement>()
+let vditor: import('vditor').default | null = null
+let vditorClass: typeof import('vditor').default | null = null
+
+const cdn = import.meta.env.BASE_URL + 'vditor'
 
 watch(
   () => props.task,
   (task) => {
-    draft.value = task?.content ?? ''
-    if (task) {
-      nextTick(() => textareaEl.value?.focus())
+    if (!task) {
+      destroyEditor()
+      return
     }
+    void createEditor(task.content)
   },
 )
 
-onMounted(() => window.addEventListener('keydown', onWindowKeydown))
-onUnmounted(() => window.removeEventListener('keydown', onWindowKeydown))
+onMounted(() => {
+  window.addEventListener('keydown', onWindowKeydown)
+  window.addEventListener('mousedown', onWindowPointerDown)
+})
+onUnmounted(() => {
+  window.removeEventListener('keydown', onWindowKeydown)
+  window.removeEventListener('mousedown', onWindowPointerDown)
+  destroyEditor()
+})
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent)
 const saveShortcutLabel = isMac ? '⌘S' : 'Ctrl + S'
@@ -33,55 +41,308 @@ const saveShortcutLabel = isMac ? '⌘S' : 'Ctrl + S'
 function onWindowKeydown(event: KeyboardEvent) {
   if (!props.task) return
   if (event.key === 'Escape') {
-    emit('close')
-  } else if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-    event.preventDefault()
-    save()
-  } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
-    event.preventDefault()
-    save()
+    if (emojiPanel.value.visible) {
+      closeEmojiPanel()
+    } else if (contextMenu.value.visible) {
+      closeContextMenu()
+    } else {
+      emit('close')
+    }
+  } else if (event.ctrlKey || event.metaKey) {
+    const key = event.key.toLowerCase()
+    if (key === 's') {
+      event.preventDefault()
+      save()
+    } else if (key === 'enter') {
+      event.preventDefault()
+      save()
+      emit('close')
+    }
   }
 }
 
-const rendered = computed(() => renderMarkdown(draft.value))
-
 function onDeleteTask() {
   emit('delete')
-}
-
-function save() {
-  emit('save', draft.value.trim())
 }
 
 function onOverlayClick() {
   emit('close')
 }
 
-function startResize(event: PointerEvent) {
-  isResizing.value = true
-  const divider = event.currentTarget as HTMLElement
-  divider.setPointerCapture(event.pointerId)
-  document.body.classList.add('user-select-none')
+function currentValue() {
+  return vditor ? vditor.getValue() : ''
 }
 
-function onResizeMove(event: PointerEvent) {
-  if (!isResizing.value) return
-  const container = splitEl.value?.parentElement
-  if (!container) return
-  const rect = container.getBoundingClientRect()
-  const pct = ((event.clientX - rect.left) / rect.width) * 100
-  leftPct.value = Math.min(80, Math.max(20, pct))
+function save() {
+  emit('save', currentValue().trim())
 }
 
-function endResize(event: PointerEvent) {
-  if (!isResizing.value) return
-  isResizing.value = false
-  const divider = event.currentTarget as HTMLElement
-  if (divider.hasPointerCapture(event.pointerId)) {
-    divider.releasePointerCapture(event.pointerId)
+function applyTheme() {
+  if (!vditor || !vditorClass) return
+  const dark = isDark.value
+  // The second argument is the content theme: switching only `theme` won't
+  // change the .vditor-reset colors, so body text stays dark (invisible) in
+  // dark mode.
+  vditor.setTheme(dark ? 'dark' : 'classic', dark ? 'dark' : 'light')
+  vditorClass.setCodeTheme(dark ? 'github-dark' : 'github', cdn)
+}
+
+function focusEditorAtEnd() {
+  if (!vditor) return
+  const { ir, sv, wysiwyg } = vditor.vditor
+  const element = ir?.element ?? sv?.element ?? wysiwyg?.element
+  if (!element) return
+  element.focus()
+  const selection = window.getSelection()
+  if (!selection) return
+  const range = document.createRange()
+  // In IR mode every block ends with a <wbr> cursor marker; placing the cursor
+  // before the last marker puts it at the end of the content.
+  const wbrs = element.querySelectorAll('wbr')
+  const lastWbr = wbrs[wbrs.length - 1]
+  if (lastWbr) {
+    range.setStartBefore(lastWbr)
+    range.collapse(true)
+  } else {
+    range.selectNodeContents(element)
+    range.collapse(false)
   }
-  document.body.classList.remove('user-select-none')
+  selection.removeAllRanges()
+  selection.addRange(range)
 }
+
+// Toolbar actions are exposed via the context menu: the hidden Vditor toolbar
+// is kept to bind events, and clicking a menu item simulates clicking the
+// matching button so Vditor's native formatting logic is reused.
+interface ContextMenuItem {
+  /** Key of the Vditor toolbar elements */
+  name: string
+  /** i18n text key (used by non-heading items) */
+  i18nKey?: Parameters<typeof t>[0]
+  /** Heading level, used to click buttons inside the headings panel */
+  level?: number
+}
+
+const contextMenu = ref({ visible: false, x: 0, y: 0 })
+const emojiPanel = ref({ visible: false, x: 0, y: 0 })
+
+const ctxRows = computed<ContextMenuItem[][]>(() => [
+  [{ name: 'emoji', i18nKey: 'emoji' }],
+  [{ name: 'check', i18nKey: 'taskList' }],
+  [{ name: 'bold', i18nKey: 'bold' }],
+  [{ name: 'italic', i18nKey: 'italic' }],
+  [{ name: 'strike', i18nKey: 'strike' }],
+  [{ name: 'link', i18nKey: 'link' }],
+])
+
+function closeContextMenu() {
+  contextMenu.value.visible = false
+}
+
+function closeEmojiPanel() {
+  emojiPanel.value.visible = false
+}
+
+// Prevent the default behavior on right-click so the editor's selected text
+// isn't cleared, letting menu commands act on the selection (e.g. bold).
+function onEditorMouseDown(event: MouseEvent) {
+  if (event.button === 2) event.preventDefault()
+}
+
+function onEditorContextMenu(event: MouseEvent) {
+  event.preventDefault()
+  const menuWidth = 264
+  const menuHeight = 240
+  contextMenu.value = {
+    visible: true,
+    x: Math.max(8, Math.min(event.clientX, window.innerWidth - menuWidth - 8)),
+    y: Math.max(8, Math.min(event.clientY, window.innerHeight - menuHeight - 8)),
+  }
+}
+
+function onWindowPointerDown(event: MouseEvent) {
+  const target = event.target as Element
+  if (!target?.closest?.('.editor-context-menu')) closeContextMenu()
+  if (!target?.closest?.('.editor-emoji-panel')) closeEmojiPanel()
+}
+
+function iconFor(name: string) {
+  return vditor?.vditor.toolbar?.elements?.[name]?.firstElementChild?.innerHTML ?? ''
+}
+
+// Emoji panel data: reuse the hint.emoji configured for Vditor (key → value).
+// The vditor instance is a plain (non-reactive) variable, so explicitly depend
+// on the panel's visibility to only evaluate when it's open (the editor is
+// guaranteed to be initialized then), with optional chaining as a fallback.
+const emojiList = computed(() => {
+  if (!vditor || !emojiPanel.value.visible) return []
+  const emoji = vditor?.vditor?.options?.hint?.emoji ?? {}
+  return Object.entries(emoji).map(([key, value]) => ({ key, value }))
+})
+
+function openEmojiPanel() {
+  // Pop up the emoji picker near the context menu position
+  const panelWidth = 300
+  const panelHeight = 288
+  emojiPanel.value = {
+    visible: true,
+    x: Math.max(8, Math.min(contextMenu.value.x, window.innerWidth - panelWidth - 8)),
+    y: Math.max(8, Math.min(contextMenu.value.y, window.innerHeight - panelHeight - 8)),
+  }
+  closeContextMenu()
+}
+
+function runMenuAction(item: ContextMenuItem) {
+  if (item.name === 'emoji') {
+    openEmojiPanel()
+    return
+  }
+  closeContextMenu()
+  const elements = vditor?.vditor.toolbar?.elements
+  if (!elements) return
+  if (item.level) {
+    elements.headings
+      ?.querySelector<HTMLButtonElement>(`button[data-tag="h${item.level}"]`)
+      ?.click()
+  } else {
+    elements[item.name]?.firstElementChild?.dispatchEvent(
+      new MouseEvent('click', { bubbles: true, cancelable: true }),
+    )
+  }
+}
+
+function insertEmoji(key: string, value: string) {
+  closeEmojiPanel()
+  const panel = vditor?.vditor.toolbar?.elements?.emoji
+  if (!panel) return
+  const dataKey = value.includes('.') ? `:${key}:` : key
+  panel.querySelector<HTMLButtonElement>(`button[data-key="${dataKey}"]`)?.click()
+  requestAnimationFrame(() => {
+    const { ir, sv, wysiwyg } = vditor?.vditor ?? {}
+    ;(ir?.element ?? sv?.element ?? wysiwyg?.element)?.focus()
+  })
+}
+
+async function createEditor(content: string) {
+  if (vditor) {
+    vditor.setValue(content, true)
+    focusEditorAtEnd()
+    return
+  }
+  if (!editorEl.value) {
+    await nextTick()
+  }
+  if (!editorEl.value) return
+  const { default: Vditor } = await import('vditor')
+  vditorClass = Vditor
+  const dark = isDark.value
+  vditor = new Vditor(editorEl.value, {
+    mode: 'ir',
+    height: '100%',
+    value: content,
+    placeholder: t('writeMarkdown'),
+    lang: locale.value === 'zh' ? 'zh_CN' : 'en_US',
+    theme: dark ? 'dark' : 'classic',
+    icon: 'ant',
+    cache: { enable: false },
+    cdn,
+    toolbar: ['emoji', 'bold', 'italic', 'strike', 'link', 'check'],
+    outline: { enable: false, position: 'right' },
+    preview: {
+      theme: { current: dark ? 'dark' : 'light' },
+      hljs: { enable: true, style: dark ? 'github-dark' : 'github', lineNumber: false },
+      markdown: { toc: true, mark: true, footnotes: true },
+      math: { engine: 'KaTeX', inlineDigit: false },
+      actions: [],
+    },
+    hint: {
+      emojiPath: `${cdn}/dist/images/emoji`,
+      emoji: {
+        smile: '😄',
+        laugh: '😆',
+        grin: '😁',
+        wink: '😉',
+        blush: '😊',
+        cool: '😎',
+        sunglasses: '😎',
+        rofl: '🤣',
+        heart_eyes: '😍',
+        kiss: '😘',
+        thinking: '🤔',
+        confused: '😕',
+        sweat: '😅',
+        cry: '😢',
+        sob: '😭',
+        angry: '😠',
+        tired: '😫',
+        sleepy: '😴',
+        mask: '😷',
+        eyes: '👀',
+        wave: '👋',
+        thumbsup: '👍',
+        thumbsdown: '👎',
+        ok_hand: '👌',
+        clap: '👏',
+        pray: '🙏',
+        fist: '✊',
+        muscle: '💪',
+        heart: '❤️',
+        broken_heart: '💔',
+        fire: '🔥',
+        star: '⭐',
+        sparkles: '✨',
+        rainbow: '🌈',
+        sun: '☀️',
+        moon: '🌙',
+        zap: '⚡',
+        snowflake: '❄️',
+        gift: '🎁',
+        balloon: '🎈',
+        rocket: '🚀',
+        tada: '🎉',
+        party: '🎊',
+        trophy: '🏆',
+        medal: '🏅',
+        book: '📖',
+        pencil: '✏️',
+        bulb: '💡',
+        hourglass: '⏳',
+        warning: '⚠️',
+        check: '✅',
+        x: '❌',
+        question: '❓',
+        exclamation: '❗',
+        coffee: '☕',
+        beer: '🍺',
+        pizza: '🍕',
+        apple: '🍎',
+        cat: '🐱',
+        dog: '🐶',
+        bird: '🐦',
+        frog: '🐸',
+      },
+    },
+    after: () => focusEditorAtEnd(),
+  })
+}
+
+function destroyEditor() {
+  closeContextMenu()
+  closeEmojiPanel()
+  if (vditor) {
+    vditor.destroy()
+    vditor = null
+  }
+}
+
+watch(isDark, () => applyTheme())
+
+watch(locale, () => {
+  if (!props.task || !vditor) return
+  const content = vditor.getValue()
+  destroyEditor()
+  void createEditor(content)
+})
 </script>
 
 <template>
@@ -130,44 +391,67 @@ function endResize(event: PointerEvent) {
           </header>
 
           <div
-            ref="splitEl"
-            class="flex flex-1 min-h-0"
-            :class="{ 'cursor-col-resize': isResizing }"
+            ref="editorEl"
+            class="vditor-host flex-1 min-h-0"
+            @contextmenu="onEditorContextMenu"
+            @mousedown="onEditorMouseDown"
+          />
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+
+  <Teleport to="body">
+    <Transition name="ctx-fade">
+      <div
+        v-if="contextMenu.visible"
+        class="editor-context-menu"
+        :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
+        @mousedown.stop
+        @contextmenu.prevent
+      >
+        <div v-for="(row, ri) in ctxRows" :key="ri" class="ctx-row">
+          <button
+            v-for="item in row"
+            :key="item.level ? `${item.name}${item.level}` : item.name"
+            class="ctx-item"
+            type="button"
+            @click="runMenuAction(item)"
           >
-            <!-- Left: editor -->
-            <div
-              class="flex min-w-0 flex-col"
-              :class="{ 'select-none': isResizing }"
-              :style="{ width: leftPct + '%' }"
-            >
-              <textarea
-                ref="textareaEl"
-                name="textarea"
-                v-model="draft"
-                class="min-h-0 w-full box-border m-1 flex-1 resize-none text-sm leading-6 text-[var(--c-text)] bg-[var(--c-bg)] placeholder:text-[var(--c-text-placeholder)] border-0 focus:outline-none"
-                :placeholder="t('writeMarkdown')"
-              />
-            </div>
-
-            <div
-              class="divider shrink-0 cursor-col-resize"
-              :title="t('dragToResize')"
-              @pointerdown="startResize"
-              @pointermove="onResizeMove"
-              @pointerup="endResize"
-              @pointercancel="endResize"
+            <span
+              v-if="!item.level"
+              class="ctx-icon"
+              aria-hidden="true"
+              v-html="iconFor(item.name)"
             />
+            <span>{{ item.level ? `H${item.level}` : item.i18nKey ? t(item.i18nKey) : '' }}</span>
+          </button>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 
-            <!-- Right: live preview -->
-            <div
-              class="flex min-w-0 flex-1 flex-col bg-[var(--c-bg-preview)]"
-              :class="{ 'select-none': isResizing }"
-            >
-              <div class="min-h-0 flex-1 overflow-auto">
-                <div class="markdown-body px-4 pb-4" v-html="rendered" />
-              </div>
-            </div>
-          </div>
+  <Teleport to="body">
+    <Transition name="ctx-fade">
+      <div
+        v-if="emojiPanel.visible"
+        class="editor-emoji-panel"
+        :style="{ left: emojiPanel.x + 'px', top: emojiPanel.y + 'px' }"
+        @mousedown.stop
+        @contextmenu.prevent
+      >
+        <div class="emoji-grid">
+          <button
+            v-for="e in emojiList"
+            :key="e.key"
+            class="emoji-item"
+            type="button"
+            :title="e.key"
+            @click="insertEmoji(e.key, e.value)"
+          >
+            <img v-if="e.value.includes('.')" class="emoji-img" :src="e.value" alt="" />
+            <span v-else class="emoji-char">{{ e.value }}</span>
+          </button>
         </div>
       </div>
     </Transition>
@@ -199,6 +483,11 @@ function endResize(event: PointerEvent) {
   box-shadow: -8px 0 24px rgba(31, 31, 31, 0.12);
 }
 
+.vditor-host {
+  min-height: 0;
+  flex: 1;
+}
+
 .drawer-enter-active,
 .drawer-leave-active {
   transition: opacity 0.2s ease;
@@ -218,170 +507,129 @@ function endResize(event: PointerEvent) {
 .drawer-leave-to .drawer-panel {
   transform: translateX(100%);
 }
+</style>
 
-/* Resize divider */
-.divider {
-  position: relative;
-  width: 6px;
-  background: transparent;
-  transition: background 0.15s ease;
-}
-
-.divider:hover {
-  background: color-mix(in srgb, var(--c-accent) 25%, transparent);
-}
-
-.divider:active {
-  background: var(--c-accent);
-}
-
-.divider::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 1px;
-  transform: translateX(-50%);
-  background: var(--c-border);
-}
-
-.divider:hover::before {
-  background: transparent;
-}
-
-/* Rendered markdown typography */
-.markdown-body :deep(h1),
-.markdown-body :deep(h2),
-.markdown-body :deep(h3),
-.markdown-body :deep(h4) {
-  margin: 0.6em 0 0.4em;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.markdown-body :deep(h1) {
-  font-size: 1.5rem;
-}
-
-.markdown-body :deep(h2) {
-  font-size: 1.3rem;
-}
-
-.markdown-body :deep(h3) {
-  font-size: 1.15rem;
-}
-
-.markdown-body :deep(h4) {
-  font-size: 1rem;
-}
-
-.markdown-body :deep(p) {
-  margin: 0.5em 0;
-  line-height: 1.6;
-}
-
-.markdown-body :deep(ul),
-.markdown-body :deep(ol) {
-  margin: 0.5em 0;
-  padding-left: 1.5em;
-}
-
-.markdown-body :deep(li) {
-  margin: 0.25em 0;
-  line-height: 1.6;
-}
-
-.markdown-body :deep(a) {
-  color: var(--c-accent);
-  text-decoration: underline;
-}
-
-.markdown-body :deep(blockquote) {
-  margin: 0.6em 0;
-  padding-left: 0.8em;
-  border-left: 3px solid var(--c-accent);
-  color: var(--c-text-secondary);
-}
-
-.markdown-body :deep(pre) {
-  margin: 0.6em 0;
-  padding: 0.8em;
-  overflow-x: auto;
-  background: var(--c-bg-code);
-  border-radius: 6px;
-  font-size: 0.85rem;
-}
-
-.markdown-body :deep(code) {
-  font-family: var(--un-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
-}
-
-.markdown-body :deep(p code),
-.markdown-body :deep(li code) {
-  padding: 0.15em 0.35em;
-  background: var(--c-bg-code-inline);
-  border-radius: 4px;
-  font-size: 0.9em;
-}
-
-.markdown-body :deep(table) {
-  margin: 0.6em 0;
-  border-collapse: collapse;
-}
-
-.markdown-body :deep(th),
-.markdown-body :deep(td) {
-  padding: 0.4em 0.7em;
-  border: 1px solid var(--c-border-strong);
-}
-
-.markdown-body :deep(hr) {
-  margin: 0.8em 0;
-  border: none;
-  border-top: 1px solid var(--c-border-strong);
-}
-
-.markdown-body :deep(input[type='checkbox']) {
-  appearance: none;
-  -webkit-appearance: none;
-  position: relative;
-  width: 14px;
-  height: 14px;
-  margin-right: 0.4em;
-  cursor: pointer;
-  vertical-align: middle;
-  border: 1px solid var(--c-border-strong);
-  border-radius: 4px;
+<style>
+.editor-context-menu {
+  position: fixed;
+  z-index: 100;
+  min-width: 200px;
+  padding: 6px;
+  box-sizing: border-box;
   background: var(--c-bg);
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(31, 31, 31, 0.18);
+  font-size: 13px;
+  line-height: 1.2;
+  user-select: none;
 }
 
-.markdown-body :deep(input[type='checkbox']:checked) {
-  background: var(--c-accent);
-  border-color: var(--c-accent);
+.ctx-row {
+  display: flex;
+  gap: 2px;
 }
 
-.markdown-body :deep(input[type='checkbox']:checked::after) {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 45%;
-  width: 4px;
-  height: 8px;
-  border: solid #fff;
-  border-width: 0 2px 2px 0;
-  transform: translate(-50%, -50%) rotate(45deg);
-}
-
-.markdown-body :deep(.task-list-item) {
-  list-style: none;
-}
-
-.markdown-body :deep(img) {
-  max-width: 100%;
+.ctx-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: none;
   border-radius: 6px;
+  background: none;
+  color: var(--c-text);
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ctx-item:hover,
+.ctx-item:focus-visible {
+  background: var(--c-bg-soft);
+  color: var(--c-accent);
+  outline: none;
+}
+
+.ctx-icon {
+  display: inline-flex;
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.ctx-icon svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.ctx-fade-enter-active,
+.ctx-fade-leave-active {
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease;
+}
+
+.ctx-fade-enter-from,
+.ctx-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.96);
+}
+
+.editor-emoji-panel {
+  position: fixed;
+  z-index: 101;
+  width: 300px;
+  max-height: 288px;
+  padding: 8px;
+  box-sizing: border-box;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(31, 31, 31, 0.18);
+  overflow-y: auto;
+  user-select: none;
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+}
+
+.emoji-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.emoji-item:hover,
+.emoji-item:focus-visible {
+  background: var(--c-bg-soft);
+  outline: none;
+}
+
+.emoji-img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.emoji-char {
+  display: inline-flex;
+  line-height: 1;
 }
 </style>

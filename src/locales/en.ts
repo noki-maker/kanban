@@ -36,7 +36,14 @@ export default {
   deleteTask: 'Delete Task',
   close: 'Close (Esc)',
   writeMarkdown: 'Write markdown here…',
-  dragToResize: 'Drag to resize',
+  // Editor context menu
+  emoji: 'Emoji',
+  bold: 'Bold',
+  italic: 'Italic',
+  strike: 'Strikethrough',
+  link: 'Link',
+  table: 'Table',
+  taskList: 'Task list',
   // Theme switcher
   chooseColor: 'Choose Color',
   chooseAccent: 'Choose accent color',

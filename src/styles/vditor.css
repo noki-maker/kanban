@@ -1,0 +1,70 @@
+/* Vditor editor theme adaptation.
+   Overrides Vditor CSS variables so the IR editor blends with the app's
+   light/dark themes and the accent color. Loaded after theme.css so these
+   rules win over Vditor's bundled defaults. */
+
+.vditor,
+.vditor--dark {
+  --border-color: var(--c-border);
+  --second-color: color-mix(in srgb, var(--c-text) 36%, transparent);
+  --panel-background-color: var(--c-bg);
+  --panel-shadow: 0 1px 2px rgba(31, 31, 31, 0.15);
+  --toolbar-background-color: var(--c-bg-soft);
+  --toolbar-icon-color: var(--c-text-secondary);
+  --toolbar-icon-hover-color: var(--c-accent);
+  --textarea-background-color: var(--c-bg);
+  --textarea-text-color: var(--c-text);
+  --count-background-color: color-mix(in srgb, var(--c-text) 6%, transparent);
+  --heading-border-color: var(--c-border);
+  --blockquote-color: var(--c-text-secondary);
+  border-color: var(--c-border);
+}
+
+/* Keep the editor above the drawer overlay while fullscreen. */
+.vditor--fullscreen {
+  z-index: 60;
+}
+
+/* Code blocks use the app's code background instead of the theme default. */
+.vditor .vditor-reset pre,
+.vditor .vditor-reset pre code {
+  background-color: var(--c-bg-code);
+}
+
+/* Links follow the accent color. */
+.vditor .vditor-reset a {
+  color: var(--c-accent);
+}
+
+/* The editor text and caret follow the app text color. Vditor hardcodes a
+   light-mode color on .vditor-reset which is invisible on the dark panel;
+   the caret follows currentColor, so fixing the color fixes both. */
+.vditor .vditor-reset {
+  color: var(--textarea-text-color);
+  caret-color: var(--textarea-text-color);
+}
+
+/* IR/SV syntax markers (bold/italic delimiters, link brackets, headings)
+   keep Vditor's light-mode colors even in the dark theme, making them hard
+   to read on dark backgrounds; restyle them for dark mode. */
+.vditor--dark {
+  --ir-heading-color: var(--c-accent);
+  --ir-bi-color: var(--c-accent);
+  --ir-link-color: #58a6ff;
+  --ir-title-color: var(--c-text-secondary);
+  --ir-bracket-color: var(--c-text-secondary);
+  --ir-paren-color: var(--c-text-secondary);
+}
+
+/* Checkboxes follow the accent color. Native checkboxes ignore background /
+   border colors (appearance: auto), so use accent-color instead. */
+.vditor .vditor-reset input[type='checkbox'] {
+  accent-color: var(--c-accent);
+}
+
+/* The toolbar is hidden; its functions are exposed via the editor's
+   right-click context menu (see TaskDrawer.vue). The toolbar DOM is still
+   rendered so Vditor keeps its click bindings and SVG icons. */
+.vditor-toolbar {
+  display: none !important;
+}

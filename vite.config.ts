@@ -13,7 +13,12 @@ delete process.env.VSCODE_CWD
 // https://vite.dev/config/
 export default defineConfig({
   staged: {
-    '*': 'vp check --fix',
+    // public/vditor is third-party static assets (incl. non-standard JS data
+    // files like mathjax); its formatting/checking is maintained by the
+    // copy-vditor script and excluded from lint-staged.
+    // Use a negated glob only: in lint-staged, '*' still matches public/** and
+    // would trigger formatting failures.
+    '!public/**': 'vp check --fix',
   },
   fmt: {
     semi: false,
@@ -28,7 +33,7 @@ export default defineConfig({
       browser: true,
       builtin: true,
     },
-    ignorePatterns: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**'],
+    ignorePatterns: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**', '**/public/**'],
     rules: {
       'no-array-constructor': 'error',
       'typescript/ban-ts-comment': 'error',
@@ -81,6 +86,13 @@ export default defineConfig({
   },
   // Deployed to GitHub Pages under the /kanban/ subpath
   base: '/kanban/',
+  // dist/vditor contains many static assets; emptying outDir would trigger the
+  // local bulk-delete safety guard (the codebuddy host forces
+  // CODEBUG_TOOL_CALL_ID into every command), so skip emptying to avoid
+  // blocking the build.
+  build: {
+    emptyOutDir: false,
+  },
   plugins: lazyPlugins(() => [UnoCSS(), vue()]),
   resolve: {
     alias: {

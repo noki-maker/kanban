@@ -36,7 +36,14 @@ export default {
   deleteTask: '删除任务',
   close: '关闭 (Esc)',
   writeMarkdown: '在此输入 Markdown…',
-  dragToResize: '拖动调整大小',
+  // Editor context menu
+  emoji: '表情',
+  bold: '加粗',
+  italic: '斜体',
+  strike: '删除线',
+  link: '链接',
+  table: '表格',
+  taskList: '任务列表',
   // Theme switcher
   chooseColor: '选择颜色',
   chooseAccent: '选择强调色',

@@ -11,7 +11,7 @@ A simple, self-hosted Kanban board that runs **entirely in your browser** — no
 ## Features
 
 - **Boards, columns & tasks** — full drag-and-drop support for reordering and moving.
-- **Markdown editing** — write in Markdown, preview live side-by-side; rendered task checkboxes follow the theme accent color.
+- **Markdown editing** — write in Markdown with a live WYSIWYG (instant-rendering) editor; rendered task checkboxes follow the theme accent color.
 - **Theming** — light / dark mode and an accent color picker with preset colors plus fully custom hex colors, persisted across visits.
 - **i18n** — built-in Simplified Chinese / English switching (one-click toggle, persisted).
 - **Instant search** — press `Ctrl/Cmd + K` to search boards, columns and tasks across all boards, and jump straight to the result.
@@ -75,21 +75,20 @@ Your last-used board is remembered and reopened next time.
 - **Move tasks** — drag a task card and drop it anywhere: reorder within a column or move it to another column.
 - **Delete a task** — open the task drawer and click the trash icon in the top-right corner.
 
-### Task Drawer (split view)
+### Task Drawer (instant rendering)
 
-Clicking a task opens a right-side drawer with a **side-by-side split**:
+Clicking a task opens a right-side drawer with a **single-pane Vditor instant-rendering (IR)** editor:
 
-- **Left — Edit**: write the task content in Markdown.
-- **Right — Preview**: the rendered result updates live as you type.
-- **Drag the divider** between the two panes to resize them (20%–80%).
+- **WYSIWYG** — the body is shown as rendered output, while the line under the cursor displays the Markdown source.
+- **Hidden toolbar** — the conventional toolbar is hidden for a clean writing surface; right-click anywhere in the editor to bring up a context menu with **bold / italic / strikethrough / link / table / task list**, plus an **emoji picker** to insert symbols at the cursor. All actions keep the selection intact, and the current line's Markdown source stays visible.
+- **Theme aware** — the editor follows the app's light / dark theme and accent color; its UI language follows the current locale. In dark mode the text and caret stay readable and rendered task checkboxes use the accent color.
 
 Drawer shortcuts:
 
-| Key                | Action                |
-| ------------------ | --------------------- |
-| `Esc`              | Close the drawer      |
-| `Ctrl/Cmd + Enter` | Save and close        |
-| `Ctrl/Cmd + S`     | Save and keep editing |
+| Key            | Action           |
+| -------------- | ---------------- |
+| `Esc`          | Close the drawer |
+| `Ctrl/Cmd + S` | Save and close   |
 
 Click **Save** to persist your changes, or click away / press `Esc` to discard them.
 
