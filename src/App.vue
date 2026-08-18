@@ -9,10 +9,14 @@ import TaskDrawer from '@/components/TaskDrawer.vue'
 import ThemeSwitcher from '@/components/ThemeSwitcher.vue'
 import { t } from '@/composables/i18n'
 import { isDark, toggleTheme } from '@/composables/theme'
-import { exportAllToExcel, exportToExcel, importFromExcel } from '@/composables/backup'
+import { importFromExcel } from '@/composables/backup'
+import { exportBackupZip, importBackupZip } from '@/composables/archive'
+import { deleteTaskAttachments } from '@/composables/attachments'
 import {
+  bulkAddAttachments,
   createBoard,
   deleteBoard,
+  getAttachments,
   getBoards,
   getColumns,
   renameBoard,
@@ -83,6 +87,9 @@ function deleteTask() {
       break
     }
   }
+  // Cascade-delete the task's attachments (fire-and-forget; the watch saves
+  // the tasks change while attachments are removed in the background).
+  void deleteTaskAttachments([task.id])
   activeTask.value = null
   activeColumnName.value = ''
 }
@@ -184,6 +191,11 @@ async function deleteCurrentBoard() {
   if (!current) return
   switching = true
   try {
+    // Release the board's attachment object URLs before dropping the rows.
+    // deleteTaskAttachments reads the records (to revoke the cached URLs),
+    // then deleteBoard's transaction removes any leftovers in one go.
+    const taskIds = columns.value.flatMap((c) => c.tasks.map((t) => t.id))
+    if (taskIds.length > 0) await deleteTaskAttachments(taskIds)
     await deleteBoard(current.id)
     const remaining = boards.value.filter((b) => b.id !== current.id)
     if (remaining.length > 0) {
@@ -262,20 +274,20 @@ function commitColumn() {
 // —— Remove column ——
 function removeColumn(column: Column) {
   const index = columns.value.findIndex((c) => c === column)
-  if (index !== -1) columns.value.splice(index, 1)
+  if (index === -1) return
+  columns.value.splice(index, 1)
+  // Cascade-delete the column's task attachments in the background.
+  const taskIds = column.tasks.map((task) => task.id)
+  if (taskIds.length > 0) void deleteTaskAttachments(taskIds)
 }
 
 // —— Export / Import ——
 const importInput = ref<HTMLInputElement>()
 
-function exportBoard() {
-  const current = boards.value.find((b) => b.id === currentBoardId.value)
-  exportToExcel(columns.value, current?.name ?? DEFAULT_BOARD_NAME)
-}
-
-async function exportAll() {
+// Export a full zip backup package including binary attachments.
+async function exportBackup() {
   try {
-    await exportAllToExcel(boards.value, getColumns)
+    await exportBackupZip(boards.value, getColumns, getAttachments)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     window.alert(t('exportFailed', { message }))
@@ -287,13 +299,8 @@ function triggerImport() {
 }
 
 // Wrappers that close the import/export dropdown after the action
-function runExportBoard(close: () => void) {
-  exportBoard()
-  close()
-}
-
-function runExportAll(close: () => void) {
-  void exportAll()
+function runExportBackup(close: () => void) {
+  void exportBackup()
   close()
 }
 
@@ -302,11 +309,71 @@ function runImport(close: () => void) {
   close()
 }
 
+// Import a zip backup package: restore boards/columns/tasks and write the
+// attachments back into the attachments table. Ids are preserved from the
+// export, so `attach://` references keep working.
+async function handleZipImport(file: File) {
+  const imported = await importBackupZip(file)
+  const valid = imported.boards.filter((b) => !b.error)
+  if (valid.length === 0) {
+    window.alert(t('importFailed', { message: t('noBoardData') }))
+    return
+  }
+
+  let created = 0
+  let merged = 0
+  let addedColumns = 0
+  let firstCreatedId: string | undefined
+  for (const item of valid) {
+    if (item.columns.length === 0) continue
+    const existing = boards.value.find((b) => b.name.trim() === item.name.trim())
+    if (existing) {
+      // Merge into an existing board with the same name
+      const targetColumns = await getColumns(existing.id)
+      const existingIds = new Set(targetColumns.map((c) => c.id))
+      let added = 0
+      for (const column of item.columns) {
+        if (existingIds.has(column.id)) column.id = crypto.randomUUID()
+        existingIds.add(column.id)
+        column.boardId = existing.id
+        column.order = targetColumns.length + added
+        targetColumns.push(column)
+        added++
+      }
+      await saveColumns(existing.id, targetColumns)
+      if (existing.id === currentBoardId.value) columns.value = targetColumns
+      merged++
+      addedColumns += added
+    } else {
+      // Create a new board named after the exported board
+      const board = await createBoard(item.name)
+      for (const column of item.columns) column.boardId = board.id
+      await saveColumns(board.id, item.columns)
+      boards.value.push(board)
+      if (!firstCreatedId) firstCreatedId = board.id
+      created++
+      addedColumns += item.columns.length
+    }
+  }
+
+  if (created === 0 && merged === 0) {
+    window.alert(t('noColumnData'))
+    return
+  }
+  // Persist attachment binaries; board/task ids were preserved so they link up.
+  await bulkAddAttachments(imported.attachments)
+  if (firstCreatedId) await switchBoard(firstCreatedId)
+}
+
 async function handleImport(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
   try {
+    if (file.name.toLowerCase().endsWith('.zip')) {
+      await handleZipImport(file)
+      return
+    }
     const imported = await importFromExcel(file)
     const valid = imported.filter((b) => !b.error)
     const failed = imported.filter((b) => b.error)
@@ -356,8 +423,6 @@ async function handleImport(event: Event) {
       return
     }
     if (firstCreatedId) await switchBoard(firstCreatedId)
-    const errorNote = failed.length > 0 ? t('skippedSheets', { count: failed.length }) : ''
-    window.alert(t('importedSummary', { columns: addedColumns, created, merged }) + errorNote)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     window.alert(t('importFailed', { message }))
@@ -573,18 +638,10 @@ async function handleThemeToggle() {
             <div
               role="menuitem"
               class="box-border flex w-full items-center gap-2 px-2 py-1.5 text-left text-xs text-[var(--c-text)] rounded-lg cursor-pointer transition-colors duration-200 hover:bg-[color-mix(in_srgb,var(--c-accent)_12%,transparent)] hover:text-[var(--c-accent)]"
-              @click="runExportBoard(close)"
+              @click="runExportBackup(close)"
             >
               <div class="i-carbon:export text-sm" />
-              {{ t('export') }}
-            </div>
-            <div
-              role="menuitem"
-              class="box-border flex w-full items-center gap-2 px-2 py-1.5 text-left text-xs text-[var(--c-text)] rounded-lg cursor-pointer transition-colors duration-200 hover:bg-[color-mix(in_srgb,var(--c-accent)_12%,transparent)] hover:text-[var(--c-accent)]"
-              @click="runExportAll(close)"
-            >
-              <div class="i-carbon:archive text-sm" />
-              {{ t('exportAll') }}
+              {{ t('exportBackup') }}
             </div>
             <div
               role="menuitem"
@@ -599,7 +656,7 @@ async function handleThemeToggle() {
         <input
           ref="importInput"
           type="file"
-          accept=".xlsx,.xls"
+          accept=".xlsx,.xls,.zip"
           class="hidden"
           @change="handleImport"
         />

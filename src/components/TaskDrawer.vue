@@ -2,6 +2,8 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import ConfirmDropdown from '@/components/ConfirmDropdown.vue'
 import type { Task } from '@/types'
+import { addAttachment } from '@/composables/db'
+import { ATTACH_PREFIX, getAttachmentUrl } from '@/composables/attachments'
 import { locale, t } from '@/composables/i18n'
 import { isDark } from '@/composables/theme'
 
@@ -128,6 +130,9 @@ const emojiPanel = ref({ visible: false, x: 0, y: 0 })
 
 const ctxRows = computed<ContextMenuItem[][]>(() => [
   [{ name: 'emoji', i18nKey: 'emoji' }],
+  // Vditor's image/upload button is the built-in `upload` menu item; `image`
+  // would fall through to a custom item without the file input.
+  [{ name: 'upload', i18nKey: 'image' }],
   [{ name: 'check', i18nKey: 'taskList' }],
   [{ name: 'bold', i18nKey: 'bold' }],
   [{ name: 'italic', i18nKey: 'italic' }],
@@ -167,7 +172,10 @@ function onWindowPointerDown(event: MouseEvent) {
 }
 
 function iconFor(name: string) {
-  return vditor?.vditor.toolbar?.elements?.[name]?.firstElementChild?.innerHTML ?? ''
+  const html = vditor?.vditor.toolbar?.elements?.[name]?.firstElementChild?.innerHTML ?? ''
+  // The upload button embeds its hidden file input next to the icon; keep
+  // only the SVG so the input is not injected into the context menu.
+  return html.match(/<svg[\s\S]*?<\/svg>/)?.[0] ?? html
 }
 
 // Emoji panel data: reuse the hint.emoji configured for Vditor (key → value).
@@ -200,6 +208,12 @@ function runMenuAction(item: ContextMenuItem) {
   closeContextMenu()
   const elements = vditor?.vditor.toolbar?.elements
   if (!elements) return
+  if (item.name === 'upload') {
+    // The hidden Vditor toolbar keeps the file input for the image button;
+    // clicking it opens the file picker and triggers the upload handler.
+    elements.upload?.querySelector<HTMLInputElement>('input[type="file"]')?.click()
+    return
+  }
   if (item.level) {
     elements.headings
       ?.querySelector<HTMLButtonElement>(`button[data-tag="h${item.level}"]`)
@@ -223,10 +237,30 @@ function insertEmoji(key: string, value: string) {
   })
 }
 
+// Images are stored as binary attachments and referenced in markdown as
+// `![name](attach://<id>)`. Those refs aren't loadable URLs, so replace the
+// `src` of every rendered image with a Blob-backed object URL. IR mode
+// re-renders the DOM on each input, so this also runs from the `input` hook.
+async function resolveAttachmentImages() {
+  const { ir, sv, wysiwyg } = vditor?.vditor ?? {}
+  const element = ir?.element ?? sv?.element ?? wysiwyg?.element
+  if (!element) return
+  const images = Array.from(element.querySelectorAll<HTMLImageElement>('img[src^="attach://"]'))
+  await Promise.all(
+    images.map(async (img) => {
+      const id = img.getAttribute('src')?.slice(ATTACH_PREFIX.length)
+      if (!id) return
+      const url = await getAttachmentUrl(id)
+      if (url) img.src = url
+    }),
+  )
+}
+
 async function createEditor(content: string) {
   if (vditor) {
     vditor.setValue(content, true)
     focusEditorAtEnd()
+    void resolveAttachmentImages()
     return
   }
   if (!editorEl.value) {
@@ -246,7 +280,29 @@ async function createEditor(content: string) {
     icon: 'ant',
     cache: { enable: false },
     cdn,
-    toolbar: ['emoji', 'bold', 'italic', 'strike', 'link', 'check'],
+    upload: {
+      accept: 'image/*',
+      multiple: true,
+      filename: (name) => name,
+      // Store the file as a binary attachment and insert an `attach://` ref.
+      // Vditor shows the returned string as a tip; returning null means the
+      // handler did all the work.
+      handler: async (files) => {
+        if (!props.task) return null
+        for (const file of files) {
+          const attachment = await addAttachment({
+            taskId: props.task.id,
+            fileName: file.name || 'image.png',
+            mime: file.type || 'application/octet-stream',
+            blob: file,
+          })
+          vditor?.insertValue(`\n![${attachment.fileName}](${ATTACH_PREFIX}${attachment.id})\n`)
+        }
+        void resolveAttachmentImages()
+        return null
+      },
+    },
+    toolbar: ['emoji', 'upload', 'bold', 'italic', 'strike', 'link', 'check'],
     outline: { enable: false, position: 'right' },
     preview: {
       theme: { current: dark ? 'dark' : 'light' },
@@ -322,7 +378,13 @@ async function createEditor(content: string) {
         frog: '🐸',
       },
     },
-    after: () => focusEditorAtEnd(),
+    input: () => {
+      void resolveAttachmentImages()
+    },
+    after: () => {
+      focusEditorAtEnd()
+      void resolveAttachmentImages()
+    },
   })
 }
 

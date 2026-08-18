@@ -51,6 +51,18 @@ function uniqueSheetName(name: string, used: Set<string>): string {
   return candidate
 }
 
+/**
+ * Replace image attachment refs (`![name](attach://<id>)`) with a readable
+ * placeholder. The xlsx export is a plain-text format and cannot carry binary
+ * images; full fidelity lives in the zip backup instead.
+ */
+function placeholderAttachmentRefs(content: string): string {
+  return content.replace(/!\[([^\]]*)\]\(attach:\/\/[^)]+\)/g, (_, alt: string) => {
+    const label = alt.trim() || 'image'
+    return `[${label} (attachment)]`
+  })
+}
+
 /** Build a single worksheet from the columns of one board. */
 function buildSheet(columns: Column[]): XLSX.WorkSheet {
   const header = [HEADER_COLUMN_ID, HEADER_COLUMN_TITLE, HEADER_COLUMN_MODE, HEADER_TASK]
@@ -72,7 +84,7 @@ function buildSheet(columns: Column[]): XLSX.WorkSheet {
         [HEADER_COLUMN_ID]: column.id,
         [HEADER_COLUMN_TITLE]: column.title,
         [HEADER_COLUMN_MODE]: column.mode,
-        [HEADER_TASK]: task.content,
+        [HEADER_TASK]: placeholderAttachmentRefs(task.content),
       })
     }
   }

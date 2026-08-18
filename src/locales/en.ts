@@ -10,8 +10,7 @@ export default {
   deleteBoard: 'Delete Board',
   addColumn: 'Add Column',
   columnName: 'Column Name',
-  export: 'Export',
-  exportAll: 'Export All',
+  exportBackup: 'Export Backup',
   import: 'Import',
   discordTitle: 'Join our Discord community',
   githubTitle: 'View source on GitHub',
@@ -22,8 +21,6 @@ export default {
   importFailed: 'Import failed: {message}',
   noBoardData: 'No board data found in the file.',
   noColumnData: 'No column data found in the file.',
-  skippedSheets: ' Skipped {count} unrecognized sheet(s).',
-  importedSummary: 'Imported {columns} column(s): {created} new board(s), {merged} merged.',
   noWorksheet: 'The file does not contain any worksheet.',
   unrecognizedFormat: 'Unrecognized sheet format: "Column Title" and "Task" headers are required.',
   // Column
@@ -38,6 +35,7 @@ export default {
   writeMarkdown: 'Write markdown here…',
   // Editor context menu
   emoji: 'Emoji',
+  image: 'Image',
   bold: 'Bold',
   italic: 'Italic',
   strike: 'Strikethrough',

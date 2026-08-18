@@ -25,3 +25,16 @@ export type SearchResult =
   | { kind: 'board'; board: Board }
   | { kind: 'column'; board: Board; column: Column }
   | { kind: 'task'; board: Board; column: Column; task: Task }
+
+/** A binary attachment (e.g. an uploaded image) referenced from a task's
+ *  markdown content as `![name](attach://<id>)`. */
+export interface Attachment {
+  id: string
+  /** The task this attachment belongs to; used for cascade cleanup. */
+  taskId: string
+  fileName: string
+  mime: string
+  blob: Blob
+  size: number
+  createdAt: number
+}

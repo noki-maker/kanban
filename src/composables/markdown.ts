@@ -24,11 +24,16 @@ const md: InstanceType<typeof MarkdownIt> = new MarkdownIt({
 
 md.use(taskLists)
 
+// DOMPurify's default URI allowlist covers http(s)/mailto/etc. but not `blob:`,
+// which we use to display stored image attachments. Extend it so blob URLs pass.
+const ALLOWED_URI_REGEXP =
+  /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|blob):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i
+
 export function renderMarkdown(source: string): string {
   let html = md.render(source ?? '')
   // The task-list plugin renders checked boxes as `disabled`, which makes
   // browsers desaturate the checkbox to gray. Drop the attribute so the
   // theme accent color stays vivid.
   html = html.replace(/\sdisabled(?:="[^"]*")?(?=[\s>])/g, '')
-  return DOMPurify.sanitize(html)
+  return DOMPurify.sanitize(html, { ALLOWED_URI_REGEXP })
 }

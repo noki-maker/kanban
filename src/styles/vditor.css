@@ -104,6 +104,13 @@
   outline-offset: 1px;
 }
 
+/* Images inside the editor (uploaded attachments rendered via blob URLs)
+   never exceed the editor width, and get a subtle rounded corner. */
+.vditor .vditor-reset img {
+  max-width: 100%;
+  border-radius: 4px;
+}
+
 /* The toolbar is hidden; its functions are exposed via the editor's
    right-click context menu (see TaskDrawer.vue). The toolbar DOM is still
    rendered so Vditor keeps its click bindings and SVG icons. */

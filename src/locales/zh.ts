@@ -10,8 +10,7 @@ export default {
   deleteBoard: '删除看板',
   addColumn: '添加列',
   columnName: '列名称',
-  export: '导出',
-  exportAll: '导出全部',
+  exportBackup: '导出备份',
   import: '导入',
   discordTitle: '加入 Discord 社区',
   githubTitle: '在 GitHub 查看源码',
@@ -22,8 +21,6 @@ export default {
   importFailed: '导入失败：{message}',
   noBoardData: '文件中未找到看板数据。',
   noColumnData: '文件中未找到列数据。',
-  skippedSheets: ' 已跳过 {count} 个无法识别的工作表。',
-  importedSummary: '已导入 {columns} 个列：新建 {created} 个看板，合并 {merged} 个。',
   noWorksheet: '文件中不包含任何工作表。',
   unrecognizedFormat: '无法识别的工作表格式：需要包含 "Column Title" 和 "Task" 表头。',
   // Column
@@ -38,6 +35,7 @@ export default {
   writeMarkdown: '在此输入 Markdown…',
   // Editor context menu
   emoji: '表情',
+  image: '图片',
   bold: '加粗',
   italic: '斜体',
   strike: '删除线',

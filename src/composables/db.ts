@@ -1,6 +1,6 @@
 // composables/db.ts
 import { Dexie, type EntityTable } from 'dexie'
-import type { Board, Column } from '@/types'
+import type { Attachment, Board, Column } from '@/types'
 
 const DEFAULT_BOARD_NAME = 'Default'
 
@@ -8,6 +8,7 @@ const DEFAULT_BOARD_NAME = 'Default'
 class KanbanDatabase extends Dexie {
   boards!: EntityTable<Board, 'id'> // Primary key is a string (id)
   columns!: EntityTable<Column, 'id'> // Primary key is a string (id)
+  attachments!: EntityTable<Attachment, 'id'> // Primary key is a string (id)
 
   constructor() {
     super('KanbanDB')
@@ -33,6 +34,9 @@ class KanbanDatabase extends Dexie {
           }
         }
       })
+    this.version(3).stores({
+      attachments: 'id, taskId, createdAt', // Indexed by taskId for cascade cleanup
+    })
   }
 }
 
@@ -66,9 +70,14 @@ export async function renameBoard(id: string, name: string): Promise<void> {
 }
 
 export async function deleteBoard(id: string): Promise<void> {
-  await db.transaction('rw', db.boards, db.columns, async () => {
+  await db.transaction('rw', db.boards, db.columns, db.attachments, async () => {
+    const boardColumns = await db.columns.where('boardId').equals(id).toArray()
     await db.boards.delete(id)
     await db.columns.where('boardId').equals(id).delete()
+    const taskIds = boardColumns.flatMap((c) => c.tasks.map((t) => t.id))
+    if (taskIds.length > 0) {
+      await db.attachments.where('taskId').anyOf(taskIds).delete()
+    }
   })
 }
 
@@ -126,6 +135,54 @@ export async function getColumns(boardId: string): Promise<Column[]> {
     console.error('Failed to load columns:', error)
     return []
   }
+}
+
+// —— Attachments ——
+
+export async function addAttachment(input: {
+  taskId: string
+  fileName: string
+  mime: string
+  blob: Blob
+}): Promise<Attachment> {
+  const attachment: Attachment = {
+    id: crypto.randomUUID(),
+    taskId: input.taskId,
+    fileName: input.fileName,
+    mime: input.mime,
+    blob: input.blob,
+    size: input.blob.size,
+    createdAt: Date.now(),
+  }
+  await db.attachments.add(attachment)
+  return attachment
+}
+
+export async function getAttachment(id: string): Promise<Attachment | undefined> {
+  return db.attachments.get(id)
+}
+
+/** Load all attachments referenced by the given task ids. */
+export async function getAttachmentsByTaskIds(taskIds: string[]): Promise<Attachment[]> {
+  if (taskIds.length === 0) return []
+  return db.attachments.where('taskId').anyOf(taskIds).toArray()
+}
+
+/** Load every attachment (used for zip backups). */
+export async function getAttachments(): Promise<Attachment[]> {
+  return db.attachments.toArray()
+}
+
+/** Delete every attachment belonging to the given task ids (cascade cleanup). */
+export async function deleteAttachmentsByTaskIds(taskIds: string[]): Promise<void> {
+  if (taskIds.length === 0) return
+  await db.attachments.where('taskId').anyOf(taskIds).delete()
+}
+
+/** Replace all attachments of a task with the given list (used on import). */
+export async function bulkAddAttachments(attachments: Attachment[]): Promise<void> {
+  if (attachments.length === 0) return
+  await db.attachments.bulkPut(attachments)
 }
 
 // —— Search ——
