@@ -38,7 +38,8 @@ pnpm dev        # 启动 Vite 开发服务器（支持 HMR）
 - **Dexie** — IndexedDB 封装，用于持久化
 - **vuedraggable** — 列与任务的拖拽
 - **markdown-it** + **markdown-it-task-lists** + **highlight.js** + **DOMPurify** — Markdown 渲染管线
-- **xlsx**（SheetJS）— Excel 导入 / 导出，用于备份
+- **Vditor** — 任务抽屉内的 Markdown 编辑器（含右键菜单操作与图片上传）
+- **fflate** — `.zip` 备份格式的压缩
 
 ## 项目结构
 
@@ -46,13 +47,16 @@ pnpm dev        # 启动 Vite 开发服务器（支持 HMR）
 src/
 ├── App.vue                     # 根布局：工具栏、看板切换、列区域
 ├── main.ts                     # 应用入口
-├── types.ts                    # Board / Column / Task 类型定义
+├── types.ts                    # Board / Column / Task / Attachment 类型定义
 ├── components/
 │   ├── ColumnCard.vue          # 单列：标题、任务、添加/删除、模式切换
-│   └── TaskDrawer.vue          # 任务详情抽屉：编辑/预览分栏，可拖拽调整比例
+│   ├── TaskCard.vue            # 任务卡片：异步渲染 markdown 预览，含附件图片
+│   └── TaskDrawer.vue          # 任务详情抽屉：Vditor IR 编辑器，带右键菜单与图片上传
 └── composables/
-    ├── db.ts                   # Dexie IndexedDB 访问（boards, columns）
-    ├── backup.ts               # Excel 导出 / 导入
+    ├── db.ts                   # Dexie IndexedDB 访问（boards, columns, attachments）
+    ├── backup.ts               # 旧版备份导入辅助
+    ├── archive.ts              # Zip 备份导出 / 导入（fflate）
+    ├── attachments.ts          # attach:// 引用、blob object URL、级联清理辅助
     └── markdown.ts             # Markdown -> 消毒后 HTML 的渲染管线
 ```
 
@@ -61,6 +65,8 @@ src/
 ### 持久化模型
 
 - 数据通过 Dexie 存放在 IndexedDB 中。`App.vue` 深度监听 `columns`，并通过 `saveColumns(boardId, columns)` 持久化变更。
+- 图片附件存放在独立的 `attachments` 表（`version(3)`），按 `taskId` 索引以便级联清理。
+- 删除任务 / 列 / 看板时会级联清理附件：`deleteTaskAttachments()` 先吊销缓存的 blob object URL，再通过 `deleteAttachmentsByTaskIds()` / `deleteBoard()` 删除记录。
 - `switching` 标志用于在切换看板时阻止深度监听写入中间状态（例如被清空的 `columns` 数组）。
 - 上次使用的看板 id 会记录在 `localStorage` 的 `kanban.lastBoardId` 中。
 
@@ -77,6 +83,13 @@ markdown-it (html: false, linkify: true, breaks: true)
 
 始终经由 `renderMarkdown()` 渲染——绝不把原始任务内容直接注入 DOM。
 
+### 附件与图片
+
+- Markdown 中以 `![名称](attach://<id>)` 引用图片，二进制存放在 `attachments` IndexedDB 表中。
+- 渲染前 `resolveAttachmentRefs()` 会把这类引用替换为缓存的 blob object URL；`markdown.ts` 中的 DOMPurify 配置放行 `blob:`，使渲染出的 `<img>` 能通过消毒。
+- `attachments.ts` 负责 URL 缓存：`getAttachmentUrl()` 创建/缓存，`revokeAttachmentUrl()` / `deleteTaskAttachments()` 在删除时释放，`clearAttachmentCache()` 用于硬重置。
+- zip 备份（`archive.ts`）保存 `data.json` 与每个附件 Blob；导入时保留原始看板/任务 id，引用不会失效。
+
 ### 列模式
 
 每列有一个 `mode`：`horizontal`（默认，全宽布局）或 `vertical`（折叠窄条）。垂直模式下隐藏标题编辑与任务管理；通过列头部的箭头按钮切换。
@@ -89,7 +102,7 @@ markdown-it (html: false, linkify: true, breaks: true)
 
 ### 类型安全
 
-- 所有数据结构定义在 `src/types.ts`。
+- 所有数据结构定义在 `src/types.ts`（包括 `Attachment`，其二进制以 `Blob` 形式存储）。
 - 提交前运行 `pnpm type-check`。
 - ID 使用 `crypto.randomUUID()` 生成。
 

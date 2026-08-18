@@ -11,11 +11,11 @@ A simple, self-hosted Kanban board that runs **entirely in your browser** — no
 ## Features
 
 - **Boards, columns & tasks** — full drag-and-drop support for reordering and moving.
-- **Markdown editing** — write in Markdown with a live WYSIWYG (instant-rendering) editor; rendered task checkboxes follow the theme accent color.
+- **Markdown editing** — write in Markdown with a live WYSIWYG (instant-rendering) editor and insert images right from the context menu; rendered task checkboxes follow the theme accent color.
 - **Theming** — light / dark mode and an accent color picker with preset colors plus fully custom hex colors, persisted across visits.
 - **i18n** — built-in Simplified Chinese / English switching (one-click toggle, persisted).
 - **Instant search** — press `Ctrl/Cmd + K` to search boards, columns and tasks across all boards, and jump straight to the result.
-- **Backup & migration** — export boards to `.xlsx` and import them back, on any machine.
+- **Backup & migration** — download a full `.zip` backup (all boards plus image attachments) and restore it anywhere.
 - **Privacy** — everything is stored locally in your browser; nothing leaves your device.
 
 ## Getting Started
@@ -80,7 +80,7 @@ Your last-used board is remembered and reopened next time.
 Clicking a task opens a right-side drawer with a **single-pane Vditor instant-rendering (IR)** editor:
 
 - **WYSIWYG** — the body is shown as rendered output, while the line under the cursor displays the Markdown source.
-- **Hidden toolbar** — the conventional toolbar is hidden for a clean writing surface; right-click anywhere in the editor to bring up a context menu with **bold / italic / strikethrough / link / table / task list**, plus an **emoji picker** to insert symbols at the cursor. All actions keep the selection intact, and the current line's Markdown source stays visible.
+- **Hidden toolbar** — the conventional toolbar is hidden for a clean writing surface; right-click anywhere in the editor to bring up a context menu with **bold / italic / strikethrough / link / table / task list / image**, plus an **emoji picker** to insert symbols at the cursor. All actions keep the selection intact, and the current line's Markdown source stays visible.
 - **Theme aware** — the editor follows the app's light / dark theme and accent color; its UI language follows the current locale. In dark mode the text and caret stay readable and rendered task checkboxes use the accent color.
 
 Drawer shortcuts:
@@ -104,15 +104,21 @@ Task content supports Markdown, so cards can contain formatted text:
 
 Raw HTML is disabled and all output is sanitized.
 
+### Images
+
+- **Insert an image** — open a task drawer, right-click in the editor and choose **Image** (or paste an image), then pick a file. The image is referenced in Markdown as `![name](attach://<id>)`.
+- **Storage** — the binary is kept in your browser's IndexedDB, not embedded in the Markdown text, so the task content stays small even for large pictures.
+- **Rendering** — images show up both in the drawer and on the task cards; they scale down to the column width instead of overflowing.
+- **Backup** — image attachments are bundled into the **Export Backup (ZIP)** package and restored on import.
+
 ### Backup & Migration
 
 Since data lives in the browser (IndexedDB), use the export/import tools to back up or move your board. They live under the **⇄ (import/export)** button in the board toolbar:
 
-| Menu item      | What it does                                                                                                                |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **Export**     | Downloads the current board as an `.xlsx` file (one sheet per column)                                                       |
-| **Export All** | Downloads every board into a single `.xlsx` workbook                                                                        |
-| **Import**     | Loads `.xlsx` / `.xls` files. Sheets matching an existing board name are **merged into it**; other sheets create new boards |
+| Menu item         | What it does                                                                                                                       |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Export Backup** | Downloads every board as a single `.zip` package (data + all image attachments) — the recommended way to back up or move your data |
+| **Import**        | Loads `.zip` backup files (full restore)                                                                                           |
 
 > Tip: export regularly — clearing your browser's site data will erase your board.
 
@@ -123,7 +129,7 @@ Since data lives in the browser (IndexedDB), use the export/import tools to back
 
 ## Data & Privacy
 
-- All columns and tasks are stored in your browser's **IndexedDB**; nothing is ever sent to a server.
+- All boards, columns, tasks and image attachments are stored in your browser's **IndexedDB**; nothing is ever sent to a server.
 - Data is tied to the browser/profile and device you use — it does not follow you across browsers or machines.
 
 ## Development

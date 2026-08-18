@@ -38,7 +38,8 @@ The production build is **pure static**: `dist/` contains only static files with
 - **Dexie** — IndexedDB wrapper for persistence
 - **vuedraggable** — drag & drop for columns and tasks
 - **markdown-it** + **markdown-it-task-lists** + **highlight.js** + **DOMPurify** — Markdown rendering pipeline
-- **xlsx** (SheetJS) — Excel export/import for backup
+- **Vditor** — Markdown editor inside the task drawer (with context-menu actions and image upload)
+- **fflate** — zip compression for the `.zip` backup format
 
 ## Project Structure
 
@@ -46,13 +47,16 @@ The production build is **pure static**: `dist/` contains only static files with
 src/
 ├── App.vue                     # Root layout: toolbar, board switching, columns area
 ├── main.ts                     # App bootstrap
-├── types.ts                    # Board / Column / Task types
+├── types.ts                    # Board / Column / Task / Attachment types
 ├── components/
 │   ├── ColumnCard.vue          # Single column: title, tasks, add/delete, mode toggle
-│   └── TaskDrawer.vue          # Task detail drawer: split editor/preview with resizable divider
+│   ├── TaskCard.vue            # Task card: async-rendered markdown preview with attachment images
+│   └── TaskDrawer.vue          # Task detail drawer: Vditor IR editor with context menu & image upload
 └── composables/
-    ├── db.ts                   # Dexie IndexedDB access (boards, columns)
-    ├── backup.ts               # Excel export / import
+    ├── db.ts                   # Dexie IndexedDB access (boards, columns, attachments)
+    ├── backup.ts               # Legacy backup import helpers
+    ├── archive.ts              # Zip backup export / import (fflate)
+    ├── attachments.ts          # attach:// refs, blob object URLs, cascade cleanup helpers
     └── markdown.ts             # Markdown -> sanitized HTML pipeline
 ```
 
@@ -61,6 +65,8 @@ src/
 ### Persistence model
 
 - Data lives in IndexedDB via Dexie. `App.vue` deep-watches `columns` and persists changes with `saveColumns(boardId, columns)`.
+- Image attachments live in their own `attachments` table (`version(3)`), keyed by `taskId` for cascade cleanup.
+- Deleting a task / column / board cascades to its attachments: `deleteTaskAttachments()` revokes the cached blob object URLs first, then `deleteAttachmentsByTaskIds()` / `deleteBoard()` remove the rows.
 - The `switching` flag prevents the deep watch from writing intermediate state (e.g. a cleared `columns` array) while switching boards.
 - The last-used board id is remembered in `localStorage` under `kanban.lastBoardId`.
 
@@ -77,6 +83,13 @@ markdown-it (html: false, linkify: true, breaks: true)
 
 Always go through `renderMarkdown()` — never inject raw task content into the DOM.
 
+### Attachments & images
+
+- Markdown references images as `![name](attach://<id>)`; the binary lives in the `attachments` IndexedDB table.
+- Before rendering, `resolveAttachmentRefs()` replaces those refs with cached blob object URLs; the DOMPurify config in `markdown.ts` whitelists `blob:` URLs so the rendered `<img>` survives sanitization.
+- `attachments.ts` owns the URL cache: `getAttachmentUrl()` creates/caches, `revokeAttachmentUrl()` / `deleteTaskAttachments()` release them on delete, `clearAttachmentCache()` for hard resets.
+- The zip backup (`archive.ts`) stores `data.json` plus each attachment blob; on import the original board/task ids are preserved so refs keep working.
+
 ### Column modes
 
 Each column has a `mode` of `horizontal` (default, full-width layout) or `vertical` (collapsed strip). Title editing and task management are hidden in vertical mode; toggling is done via the header chevron.
@@ -89,7 +102,7 @@ Each column has a `mode` of `horizontal` (default, full-width layout) or `vertic
 
 ### Type safety
 
-- All data shapes are defined in `src/types.ts`.
+- All data shapes are defined in `src/types.ts` (including `Attachment`, which stores its binary as a `Blob`).
 - Run `pnpm type-check` before committing.
 - IDs are generated with `crypto.randomUUID()`.
 
